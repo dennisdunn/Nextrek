@@ -17,7 +17,7 @@ interface CombatEncounter {
  */
 export function GameShell() {
   const controller = useGalaxy()
-  const { galaxy, moveTo } = controller
+  const { galaxy, moveTo, refundEnergy } = controller
   const [encounter, setEncounter] = useState<CombatEncounter | null>(null)
 
   const handleMove = useCallback(
@@ -40,8 +40,11 @@ export function GameShell() {
         }
         return null
       })
+      // Whatever was committed to shields/phasers for the fight goes back
+      // to the reserve now that combat is over, win or lose.
+      refundEnergy()
     },
-    [galaxy],
+    [galaxy, refundEnergy],
   )
 
   if (encounter) {

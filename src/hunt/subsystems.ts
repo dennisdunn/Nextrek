@@ -23,3 +23,12 @@ export function allocate(pools: EnergyPools, subsystem: Subsystem, targetLevel: 
     [subsystem]: next,
   }
 }
+
+/** Stand shields and phasers down, returning whatever they held to the reserve - e.g. once combat resolves. */
+export function refund(pools: EnergyPools): EnergyPools {
+  return {
+    reserve: pools.reserve + pools.shields + pools.phasers,
+    shields: 0,
+    phasers: 0,
+  }
+}

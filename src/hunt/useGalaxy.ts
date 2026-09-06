@@ -6,7 +6,7 @@ import { createGalaxy, disengageWarp, engageWarp, type CreateGalaxyOptions } fro
 import { stardateCost, STARTING_STARDATE, tacticalAlert } from './mission'
 import { knownSectors, sensedHostiles } from './sensors'
 import { canAfford, moveCost, STARTING_ENERGY, WARP_ENGAGE_COST } from './ship'
-import { allocate, type EnergyPools, type Subsystem } from './subsystems'
+import { allocate, refund, type EnergyPools, type Subsystem } from './subsystems'
 
 export type AnomalyKind = 'chamber' | 'well' | 'conduit' | 'gate'
 
@@ -96,6 +96,12 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     setState((s) => ({ ...s, energy: allocate(s.energy, subsystem, targetLevel) }))
   }, [])
 
+  const refundEnergy = useCallback(() => {
+    if (state.energy.shields === 0 && state.energy.phasers === 0) return
+    setState((s) => ({ ...s, energy: refund(s.energy) }))
+    appendLog('Shields and phasers stood down - power rerouted to the main reserve.')
+  }, [state.energy.shields, state.energy.phasers, appendLog])
+
   const triggerAnomaly = useCallback(
     (kind: AnomalyKind, target: NodeId) => {
       switch (kind) {
@@ -139,6 +145,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     moveTo,
     toggleWarp,
     allocateEnergy,
+    refundEnergy,
     triggerAnomaly,
     undoAnomaly,
   }

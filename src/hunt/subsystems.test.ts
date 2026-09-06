@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { allocate } from './subsystems'
+import { allocate, refund } from './subsystems'
 
 describe('allocate', () => {
   it('moves energy from reserve into a subsystem', () => {
@@ -30,5 +30,17 @@ describe('allocate', () => {
     const pools = { reserve: 50, shields: 20, phasers: 30 }
     const next = allocate(pools, 'phasers', 50)
     expect(next).toEqual({ reserve: 30, shields: 20, phasers: 50 })
+  })
+})
+
+describe('refund', () => {
+  it('returns shield and phaser energy to the reserve and zeroes both', () => {
+    const pools = { reserve: 10, shields: 40, phasers: 25 }
+    expect(refund(pools)).toEqual({ reserve: 75, shields: 0, phasers: 0 })
+  })
+
+  it('is a no-op when nothing was allocated', () => {
+    const pools = { reserve: 100, shields: 0, phasers: 0 }
+    expect(refund(pools)).toEqual(pools)
   })
 })
