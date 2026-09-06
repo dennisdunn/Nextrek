@@ -1,6 +1,7 @@
 import { entityExists, query } from 'bitecs'
 import { useEffect, useRef } from 'react'
 import { bindInput, createInputState, inputSystem } from './input'
+import { loadoutFromEnergy } from './loadout'
 import { spawnHostile, spawnPlayer, spawnProjectile } from './spawn'
 import { ageoutSystem } from './systems/ageout'
 import { boundarySystem } from './systems/boundary'
@@ -14,6 +15,9 @@ export type KillOutcome = 'victory' | 'defeat'
 
 export interface KillPhaseProps {
   sectorName: string
+  /** Engineering's shield/phaser allocation (0-100) carried over from the hunt phase. */
+  shieldLevel: number
+  phaserLevel: number
   hostileCount?: number
   onResolved: (outcome: KillOutcome) => void
 }
@@ -23,8 +27,16 @@ const HEIGHT = 480
 const FIRE_COOLDOWN_MS = 250
 const MAX_FRAME_MS = 50 // clamp long pauses (tab switch) so physics doesn't jump
 
-export function KillPhase({ sectorName, hostileCount = 1, onResolved }: KillPhaseProps) {
+export function KillPhase({
+  sectorName,
+  shieldLevel,
+  phaserLevel,
+  hostileCount = 1,
+  onResolved,
+}: KillPhaseProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const hudRef = useRef<HTMLParagraphElement | null>(null)
+  const loadout = loadoutFromEnergy(shieldLevel, phaserLevel)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -32,7 +44,11 @@ export function KillPhase({ sectorName, hostileCount = 1, onResolved }: KillPhas
     if (!canvas || !ctx) return
 
     const world = createKillWorld()
-    const playerEid = spawnPlayer(world, { x: WIDTH / 2, y: HEIGHT / 2 })
+    const playerEid = spawnPlayer(world, {
+      x: WIDTH / 2,
+      y: HEIGHT / 2,
+      health: loadout.hullHealth,
+    })
     for (let i = 0; i < hostileCount; i++) {
       spawnHostile(world, { x: Math.random() * WIDTH, y: Math.random() * HEIGHT })
     }
@@ -62,6 +78,7 @@ export function KillPhase({ sectorName, hostileCount = 1, onResolved }: KillPhas
             y: world.components.Position.y[playerEid],
             heading: world.components.Heading[playerEid],
             owner: playerEid,
+            damage: loadout.weaponDamage,
           })
         }
       }
@@ -72,6 +89,11 @@ export function KillPhase({ sectorName, hostileCount = 1, onResolved }: KillPhas
       ageoutSystem(world)
       pruneSystem(world)
       renderSystem(world, ctx, WIDTH, HEIGHT)
+
+      if (hudRef.current) {
+        const hull = playerAlive ? Math.max(0, Math.round(world.components.Health[playerEid])) : 0
+        hudRef.current.textContent = `Hull ${hull}/${Math.round(loadout.hullHealth)} · Phasers ${Math.round(loadout.weaponDamage)} dmg`
+      }
 
       if (!resolved) {
         const hostilesAlive = query(world, [world.components.Hostile]).length
@@ -92,11 +114,15 @@ export function KillPhase({ sectorName, hostileCount = 1, onResolved }: KillPhas
       cancelAnimationFrame(raf)
       unbindInput()
     }
-  }, [hostileCount, onResolved])
+  }, [hostileCount, loadout.hullHealth, loadout.weaponDamage, onResolved])
 
   return (
     <div className="kill-phase">
       <h2>Red alert: {sectorName}</h2>
+      <p ref={hudRef} className="kill-hud">
+        Hull {Math.round(loadout.hullHealth)}/{Math.round(loadout.hullHealth)} · Phasers{' '}
+        {Math.round(loadout.weaponDamage)} dmg
+      </p>
       <canvas ref={canvasRef} width={WIDTH} height={HEIGHT} className="kill-canvas" />
       <p className="kill-hint">Arrows / WASD to steer and thrust, Space to fire.</p>
     </div>

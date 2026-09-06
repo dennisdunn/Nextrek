@@ -45,7 +45,14 @@ export function GameShell() {
   )
 
   if (encounter) {
-    return <KillPhase sectorName={encounter.sectorName} onResolved={handleResolved} />
+    return (
+      <KillPhase
+        sectorName={encounter.sectorName}
+        shieldLevel={controller.state.energy.shields}
+        phaserLevel={controller.state.energy.phasers}
+        onResolved={handleResolved}
+      />
+    )
   }
 
   return <HuntPhase controller={controller} onMove={handleMove} />

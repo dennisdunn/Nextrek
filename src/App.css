@@ -249,6 +249,17 @@
   flex: 1;
 }
 
+.kill-hud {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-h);
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 12px;
+  margin: 0;
+}
+
 .kill-canvas {
   background: #000;
   border: 1px solid var(--danger);
