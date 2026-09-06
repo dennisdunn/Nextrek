@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import type { NodeId } from '../graph/UndoGraph'
 import { GalaxyMap } from './GalaxyMap'
+import { STARTING_ENERGY } from './ship'
 import type { AnomalyKind, useGalaxy } from './useGalaxy'
 
 export interface HuntPhaseProps {
@@ -21,7 +22,8 @@ function pickOtherSector(galaxy: HuntPhaseProps['controller']['galaxy'], exclude
  * layer's job (see game/GameShell.tsx), not this component's.
  */
 export function HuntPhase({ controller, onMove }: HuntPhaseProps) {
-  const { galaxy, state, currentSector, neighbors, toggleWarp, triggerAnomaly } = controller
+  const { galaxy, state, currentSector, neighbors, known, sensedDanger, toggleWarp, triggerAnomaly } =
+    controller
 
   const spawnAnomaly = useCallback(
     (kind: AnomalyKind) => {
@@ -30,12 +32,36 @@ export function HuntPhase({ controller, onMove }: HuntPhaseProps) {
     [triggerAnomaly, galaxy, state.position],
   )
 
+  const energyPct = Math.max(0, Math.min(100, (state.energy / STARTING_ENERGY) * 100))
+
   return (
     <div className="hunt-phase">
-      <GalaxyMap galaxy={galaxy} position={state.position} neighbors={neighbors} onSelect={onMove} />
+      <GalaxyMap
+        galaxy={galaxy}
+        position={state.position}
+        neighbors={neighbors}
+        known={known}
+        onSelect={onMove}
+      />
       <aside className="hunt-status">
         <h2>{currentSector?.name ?? 'Unknown sector'}</h2>
         {currentSector?.hostile && <p className="alert">Hostile contact!</p>}
+        {!currentSector?.hostile && sensedDanger.length > 0 && (
+          <p className="alert alert--caution">
+            Sensors detect {sensedDanger.length} hostile{sensedDanger.length > 1 ? 's' : ''} nearby.
+          </p>
+        )}
+
+        <div className="energy-readout">
+          <span>Energy: {Math.round(state.energy)}</span>
+          <div className="energy-bar">
+            <div
+              className={`energy-bar__fill${energyPct < 20 ? ' energy-bar__fill--low' : ''}`}
+              style={{ width: `${energyPct}%` }}
+            />
+          </div>
+        </div>
+
         <p>
           Warp drive: <strong>{state.warpEngaged ? 'engaged' : 'disengaged'}</strong>
         </p>

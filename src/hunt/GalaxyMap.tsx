@@ -6,6 +6,8 @@ interface GalaxyMapProps {
   galaxy: Galaxy
   position: NodeId
   neighbors: NodeId[]
+  /** Sectors with real sensor data (visited or currently adjacent) - everything else renders as unknown. */
+  known: ReadonlySet<NodeId>
   onSelect: (id: NodeId) => void
 }
 
@@ -34,7 +36,7 @@ function sectorPath(inner: { r: number; theta: number }, outer: { r: number; the
   ].join(' ')
 }
 
-export function GalaxyMap({ galaxy, position, neighbors, onSelect }: GalaxyMapProps) {
+export function GalaxyMap({ galaxy, position, neighbors, known, onSelect }: GalaxyMapProps) {
   return (
     <svg
       viewBox={`0 0 ${SIZE} ${SIZE}`}
@@ -45,10 +47,13 @@ export function GalaxyMap({ galaxy, position, neighbors, onSelect }: GalaxyMapPr
       {[...galaxy.nodes.entries()].map(([id, sector]) => {
         const isHere = id === position
         const isReachable = neighbors.includes(id)
+        const isKnown = known.has(id)
+        const isHostile = isKnown && sector.hostile
         const classes = ['sector']
         if (isHere) classes.push('sector--here')
         if (isReachable) classes.push('sector--reachable')
-        if (sector.hostile) classes.push('sector--hostile')
+        if (isHostile) classes.push('sector--hostile')
+        if (!isKnown) classes.push('sector--unknown')
         return (
           <path
             key={id}
@@ -58,7 +63,7 @@ export function GalaxyMap({ galaxy, position, neighbors, onSelect }: GalaxyMapPr
           >
             <title>
               {sector.name}
-              {sector.hostile ? ' (hostile contact)' : ''}
+              {isHostile ? ' (hostile contact)' : !isKnown ? ' (unscanned)' : ''}
             </title>
           </path>
         )

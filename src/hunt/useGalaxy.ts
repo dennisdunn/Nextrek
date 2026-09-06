@@ -1,14 +1,18 @@
 import { useCallback, useMemo, useState } from 'react'
 import { chamber, conduit, gate, well } from '../graph/anomalies'
 import type { NodeId } from '../graph/UndoGraph'
-import { createGalaxy, disengageWarp, engageWarp, type CreateGalaxyOptions } from './galaxy'
 import { sectorId } from './cartography'
+import { createGalaxy, disengageWarp, engageWarp, type CreateGalaxyOptions } from './galaxy'
+import { knownSectors, sensedHostiles } from './sensors'
+import { canAfford, moveCost, STARTING_ENERGY, WARP_ENGAGE_COST } from './ship'
 
 export type AnomalyKind = 'chamber' | 'well' | 'conduit' | 'gate'
 
 export interface HuntState {
   position: NodeId
   warpEngaged: boolean
+  energy: number
+  visited: Set<NodeId>
   log: string[]
 }
 
@@ -24,6 +28,8 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
   const [state, setState] = useState<HuntState>({
     position: home,
     warpEngaged: false,
+    energy: STARTING_ENERGY,
+    visited: new Set([home]),
     log: ['Sensors online. Awaiting orders.'],
   })
 
@@ -35,29 +41,46 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
 
   const currentSector = galaxy.getNode(state.position)
   const neighbors = galaxy.neighbors(state.position)
+  const known = knownSectors(galaxy, state.position, state.visited)
+  const sensedDanger = sensedHostiles(galaxy, state.position)
 
   const moveTo = useCallback(
     (target: NodeId) => {
       if (!galaxy.neighbors(state.position).includes(target)) return false
+      const cost = moveCost(state.warpEngaged)
+      if (!canAfford(state.energy, cost)) {
+        appendLog('Insufficient energy to move - reserves critical.')
+        return false
+      }
       const sector = galaxy.getNode(target)
-      setState((s) => ({ ...s, position: target }))
-      appendLog(`Moved to ${sector?.name ?? target}.`)
+      setState((s) => ({
+        ...s,
+        position: target,
+        energy: s.energy - cost,
+        visited: new Set(s.visited).add(target),
+      }))
+      appendLog(`Moved to ${sector?.name ?? target}. (-${cost} energy)`)
       return true
     },
-    [galaxy, state.position, appendLog],
+    [galaxy, state.position, state.warpEngaged, state.energy, appendLog],
   )
 
   const toggleWarp = useCallback(() => {
     if (state.warpEngaged) {
       disengageWarp(galaxy)
+      setState((s) => ({ ...s, warpEngaged: false }))
       appendLog('Warp drive disengaged.')
     } else {
+      if (!canAfford(state.energy, WARP_ENGAGE_COST)) {
+        appendLog('Insufficient energy to engage warp drive.')
+        return
+      }
       engageWarp(galaxy)
-      appendLog('Warp drive engaged.')
+      setState((s) => ({ ...s, warpEngaged: true, energy: s.energy - WARP_ENGAGE_COST }))
+      appendLog(`Warp drive engaged. (-${WARP_ENGAGE_COST} energy)`)
     }
-    setState((s) => ({ ...s, warpEngaged: !s.warpEngaged }))
     bump()
-  }, [galaxy, state.warpEngaged, appendLog, bump])
+  }, [galaxy, state.warpEngaged, state.energy, appendLog, bump])
 
   const triggerAnomaly = useCallback(
     (kind: AnomalyKind, target: NodeId) => {
@@ -96,6 +119,8 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     state,
     currentSector,
     neighbors,
+    known,
+    sensedDanger,
     moveTo,
     toggleWarp,
     triggerAnomaly,
