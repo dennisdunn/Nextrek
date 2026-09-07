@@ -39,9 +39,12 @@ export function sectorId(region: number, ring: number): NodeId {
 }
 
 /**
- * Divide the galaxy into equal-area rings (r = sqrt(ring / ringCount)),
- * each split into equal angular regions - a polar map shape rather than a
- * Cartesian grid.
+ * Divide the galaxy into equal-width rings (radii at integer multiples -
+ * ring 0 spans r=[0,1], ring 1 spans [1,2], and so on), each split into
+ * equal angular regions - a polar map shape rather than a Cartesian grid.
+ * Equal-area rings (r = sqrt(ring / ringCount)) look visually confusing:
+ * they shrink the inner rings to slivers near the pole to keep every
+ * ring's area the same. Equal width bands read like a dartboard instead.
  */
 export function createSectors(): Sector[] {
   const regionWidth = (2 * Math.PI) / REGION_NAMES.length
@@ -53,11 +56,8 @@ export function createSectors(): Sector[] {
         region,
         ring,
         arc: {
-          inner: { r: Math.sqrt(ring / RING_NAMES.length), theta: region * regionWidth },
-          outer: {
-            r: Math.sqrt((ring + 1) / RING_NAMES.length),
-            theta: (region + 1) * regionWidth,
-          },
+          inner: { r: ring, theta: region * regionWidth },
+          outer: { r: ring + 1, theta: (region + 1) * regionWidth },
         },
       })
     }

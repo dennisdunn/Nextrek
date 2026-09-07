@@ -16,8 +16,16 @@ describe('createSectors', () => {
 
   it('outermost sector of the last region reaches the rim at 2*PI', () => {
     const s = getSectorByName(sectors, 'Vega IV')
-    expect(s.arc.outer.r).toBeCloseTo(1)
+    expect(s.arc.outer.r).toBeCloseTo(RING_NAMES.length)
     expect(s.arc.outer.theta).toBeCloseTo(2 * Math.PI)
+  })
+
+  it('ring boundaries fall at integer radii, one unit wide each', () => {
+    for (let ring = 0; ring < RING_NAMES.length; ring++) {
+      const s = getSectorByName(sectors, `Aldebaran ${RING_NAMES[ring]}`)
+      expect(s.arc.inner.r).toBe(ring)
+      expect(s.arc.outer.r).toBe(ring + 1)
+    }
   })
 })
 
@@ -41,7 +49,7 @@ describe('getSectorContaining', () => {
   })
 
   it('finds a sector near the outer rim', () => {
-    const s = getSectorContaining(sectors, { r: 0.9, theta: 6.0 })
+    const s = getSectorContaining(sectors, { r: RING_NAMES.length - 0.1, theta: 6.0 })
     expect(s.ring).toBe(RING_NAMES.length - 1)
   })
 })
