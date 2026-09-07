@@ -21,6 +21,12 @@ export function createKillWorld() {
       Hostile: [] as number[],
       WrapBoundary: [] as number[],
       Dead: [] as number[],
+      /** Depletable defense pool: absorbs incoming damage before it reaches Health. */
+      ShieldEnergy: [] as number[],
+      /** Depletable ammo pool: a shot costs energy from here, so it runs out. */
+      PhaserEnergy: [] as number[],
+      /** Per-entity cooldown (ms) until an AI shooter may fire again. */
+      FireCooldown: [] as number[],
     },
     time: {
       delta: 0,

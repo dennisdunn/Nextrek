@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import type { NodeId } from '../graph/UndoGraph'
 import { HuntPhase } from '../hunt/HuntPhase'
 import { useGalaxy } from '../hunt/useGalaxy'
-import { KillPhase, type KillOutcome } from '../kill/KillPhase'
+import { KillPhase, type CombatResult } from '../kill/KillPhase'
 
 interface CombatEncounter {
   sectorId: NodeId
@@ -32,17 +32,17 @@ export function GameShell() {
   )
 
   const handleResolved = useCallback(
-    (outcome: KillOutcome) => {
+    (result: CombatResult) => {
       setEncounter((current) => {
-        if (current && outcome === 'victory') {
+        if (current && result.outcome === 'victory') {
           const sector = galaxy.getNode(current.sectorId)
           if (sector) galaxy.setNode(current.sectorId, { ...sector, hostile: false })
         }
         return null
       })
-      // Whatever was committed to shields/phasers for the fight goes back
-      // to the reserve now that combat is over, win or lose.
-      refundEnergy()
+      // Whatever shield/phaser energy survived the fight goes back to the
+      // reserve (at a lossy exchange rate) now that combat is over.
+      refundEnergy(result.leftoverShieldEnergy, result.leftoverPhaserEnergy)
     },
     [galaxy, refundEnergy],
   )

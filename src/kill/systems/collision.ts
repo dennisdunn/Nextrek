@@ -8,9 +8,13 @@ function markDead(world: KillWorld, eid: number): void {
   addComponent(world, eid, Dead)
 }
 
-/** Projectile (Weapon) vs. hull (Health) collisions - torpedo/phaser hits from trek2, ported to bitECS. */
+/**
+ * Projectile (Weapon) vs. hull (Health) collisions - torpedo/phaser hits
+ * from trek2, ported to bitECS. A hull with ShieldEnergy absorbs damage
+ * from that pool first; only the overflow (if any) reaches Health.
+ */
 export function collisionSystem(world: KillWorld): void {
-  const { Position, Radius, Health, Weapon, Owner, Dead } = world.components
+  const { Position, Radius, Health, Weapon, Owner, Dead, ShieldEnergy } = world.components
   const weapons = query(world, [Position, Radius, Weapon])
   const hulls = query(world, [Position, Radius, Health])
 
@@ -23,7 +27,13 @@ export function collisionSystem(world: KillWorld): void {
       const dy = Position.y[weaponId] - Position.y[hullId]
       const distance = Math.sqrt(dx * dx + dy * dy)
       if (distance <= Radius[weaponId] + Radius[hullId]) {
-        Health[hullId] -= Weapon[weaponId]
+        let damage = Weapon[weaponId]
+        if (hasComponent(world, hullId, ShieldEnergy) && ShieldEnergy[hullId] > 0) {
+          const absorbed = Math.min(ShieldEnergy[hullId], damage)
+          ShieldEnergy[hullId] -= absorbed
+          damage -= absorbed
+        }
+        if (damage > 0) Health[hullId] -= damage
         markDead(world, weaponId)
         if (Health[hullId] <= 0) markDead(world, hullId)
       }

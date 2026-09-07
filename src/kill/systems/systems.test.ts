@@ -188,4 +188,40 @@ describe('collisionSystem', () => {
     expect(world.components.Health[target]).toBe(20)
     expect(world.components.Dead[weapon]).toBe(1)
   })
+
+  it('absorbs damage from ShieldEnergy before it reaches Health', () => {
+    const world = createKillWorld()
+    const hull = spawnHull(world, 0, 100)
+    addComponent(world, hull, world.components.ShieldEnergy)
+    world.components.ShieldEnergy[hull] = 50
+    spawnWeapon(world, 5, 20)
+
+    collisionSystem(world)
+
+    expect(world.components.ShieldEnergy[hull]).toBe(30)
+    expect(world.components.Health[hull]).toBe(100)
+  })
+
+  it('spills only the overflow to Health once shields run out', () => {
+    const world = createKillWorld()
+    const hull = spawnHull(world, 0, 100)
+    addComponent(world, hull, world.components.ShieldEnergy)
+    world.components.ShieldEnergy[hull] = 15
+    spawnWeapon(world, 5, 20)
+
+    collisionSystem(world)
+
+    expect(world.components.ShieldEnergy[hull]).toBe(0)
+    expect(world.components.Health[hull]).toBe(95)
+  })
+
+  it('a hull with no ShieldEnergy component takes damage on the hull directly, as before', () => {
+    const world = createKillWorld()
+    const hull = spawnHull(world, 0, 100)
+    spawnWeapon(world, 5, 20)
+
+    collisionSystem(world)
+
+    expect(world.components.Health[hull]).toBe(80)
+  })
 })

@@ -24,10 +24,25 @@ export function allocate(pools: EnergyPools, subsystem: Subsystem, targetLevel: 
   }
 }
 
-/** Stand shields and phasers down, returning whatever they held to the reserve - e.g. once combat resolves. */
-export function refund(pools: EnergyPools): EnergyPools {
+/**
+ * Fraction of leftover shield/phaser energy actually recovered when
+ * combat ends. A one-way conversion loss: allocating energy "just in
+ * case" and never spending it still costs you (1 - this) of it, so
+ * over-committing before a fight isn't free just because it's undone
+ * afterward.
+ */
+export const REFUND_EFFICIENCY = 0.5
+
+/**
+ * Stand shields and phasers down after combat. Only the reported
+ * leftover (not the original allocation - whatever was actually spent
+ * absorbing hits or firing is gone) comes back, and only at
+ * REFUND_EFFICIENCY on the dollar.
+ */
+export function refund(leftoverShields: number, leftoverPhasers: number, pools: EnergyPools): EnergyPools {
+  const recovered = Math.max(0, leftoverShields + leftoverPhasers) * REFUND_EFFICIENCY
   return {
-    reserve: pools.reserve + pools.shields + pools.phasers,
+    reserve: pools.reserve + recovered,
     shields: 0,
     phasers: 0,
   }

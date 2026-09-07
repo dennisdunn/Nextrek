@@ -14,9 +14,15 @@ function headingToVelocity(heading: number, speed: number): { x: number; y: numb
   return { x: speed * Math.sin(rad), y: -speed * Math.cos(rad) }
 }
 
-export function spawnPlayer(world: KillWorld, opts: SpawnShipOptions): number {
+export interface SpawnPlayerOptions extends SpawnShipOptions {
+  shieldEnergy?: number
+  phaserEnergy?: number
+}
+
+export function spawnPlayer(world: KillWorld, opts: SpawnPlayerOptions): number {
   const eid = addEntity(world)
-  const { Position, Velocity, Heading, Radius, Health, WrapBoundary, Player } = world.components
+  const { Position, Velocity, Heading, Radius, Health, WrapBoundary, Player, ShieldEnergy, PhaserEnergy } =
+    world.components
   addComponent(world, eid, Position)
   addComponent(world, eid, Velocity)
   addComponent(world, eid, Heading)
@@ -24,6 +30,8 @@ export function spawnPlayer(world: KillWorld, opts: SpawnShipOptions): number {
   addComponent(world, eid, Health)
   addComponent(world, eid, WrapBoundary)
   addComponent(world, eid, Player)
+  addComponent(world, eid, ShieldEnergy)
+  addComponent(world, eid, PhaserEnergy)
 
   Position.x[eid] = opts.x
   Position.y[eid] = opts.y
@@ -33,12 +41,14 @@ export function spawnPlayer(world: KillWorld, opts: SpawnShipOptions): number {
   Radius[eid] = opts.radius ?? 14
   Health[eid] = opts.health ?? 100
   Player[eid] = 1
+  ShieldEnergy[eid] = Math.max(0, opts.shieldEnergy ?? 0)
+  PhaserEnergy[eid] = Math.max(0, opts.phaserEnergy ?? 0)
   return eid
 }
 
 export function spawnHostile(world: KillWorld, opts: SpawnShipOptions): number {
   const eid = addEntity(world)
-  const { Position, Velocity, Heading, Radius, Health, WrapBoundary, Hostile } = world.components
+  const { Position, Velocity, Heading, Radius, Health, WrapBoundary, Hostile, FireCooldown } = world.components
   addComponent(world, eid, Position)
   addComponent(world, eid, Velocity)
   addComponent(world, eid, Heading)
@@ -46,6 +56,7 @@ export function spawnHostile(world: KillWorld, opts: SpawnShipOptions): number {
   addComponent(world, eid, Health)
   addComponent(world, eid, WrapBoundary)
   addComponent(world, eid, Hostile)
+  addComponent(world, eid, FireCooldown)
 
   const heading = opts.heading ?? Math.random() * 360
   const { x: vx, y: vy } = headingToVelocity(heading, 40 + Math.random() * 40)
@@ -57,6 +68,8 @@ export function spawnHostile(world: KillWorld, opts: SpawnShipOptions): number {
   Radius[eid] = opts.radius ?? 16
   Health[eid] = opts.health ?? 40
   Hostile[eid] = 1
+  // staggered so a pack of hostiles doesn't volley in perfect sync
+  FireCooldown[eid] = Math.random() * 1000
   return eid
 }
 

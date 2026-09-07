@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { allocate, refund } from './subsystems'
+import { allocate, refund, REFUND_EFFICIENCY } from './subsystems'
 
 describe('allocate', () => {
   it('moves energy from reserve into a subsystem', () => {
@@ -34,13 +34,23 @@ describe('allocate', () => {
 })
 
 describe('refund', () => {
-  it('returns shield and phaser energy to the reserve and zeroes both', () => {
-    const pools = { reserve: 10, shields: 40, phasers: 25 }
-    expect(refund(pools)).toEqual({ reserve: 75, shields: 0, phasers: 0 })
+  it('returns only the reported leftover, at REFUND_EFFICIENCY, and always zeroes both subsystems', () => {
+    // pools.shields/phasers (the pre-combat allocation) are stale once
+    // combat starts - refund goes entirely off the reported leftover.
+    const pools = { reserve: 10, shields: 999, phasers: 999 }
+    const next = refund(40, 25, pools)
+    expect(next).toEqual({ reserve: 10 + (40 + 25) * REFUND_EFFICIENCY, shields: 0, phasers: 0 })
   })
 
-  it('is a no-op when nothing was allocated', () => {
+  it('recovers nothing when both pools were fully depleted in combat', () => {
     const pools = { reserve: 100, shields: 0, phasers: 0 }
-    expect(refund(pools)).toEqual(pools)
+    expect(refund(0, 0, pools)).toEqual({ reserve: 100, shields: 0, phasers: 0 })
+  })
+
+  it('is lossy: less comes back than was left over', () => {
+    const pools = { reserve: 0, shields: 0, phasers: 0 }
+    const next = refund(50, 50, pools)
+    expect(next.reserve).toBeLessThan(100)
+    expect(next.reserve).toBeGreaterThan(0)
   })
 })
