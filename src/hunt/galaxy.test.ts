@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { sectorId } from './cartography'
+import { REGION_NAMES, RING_NAMES, sectorId } from './cartography'
 import { createGalaxy, disengageWarp, engageWarp } from './galaxy'
 
 describe('createGalaxy', () => {
-  it('seeds all 64 sectors', () => {
+  it('seeds every sector in the galaxy', () => {
     const galaxy = createGalaxy({ rng: () => 0 })
-    expect(galaxy.nodes.size).toBe(64)
+    expect(galaxy.nodes.size).toBe(REGION_NAMES.length * RING_NAMES.length)
   })
 
   it('never seeds a hostile in the home sector', () => {

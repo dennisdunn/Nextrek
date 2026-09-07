@@ -4,7 +4,7 @@ import { createSectors, getSectorByName, getSectorContaining, REGION_NAMES, RING
 describe('createSectors', () => {
   const sectors = createSectors()
 
-  it('produces 16 regions x 4 rings = 64 sectors', () => {
+  it('produces regions x rings sectors', () => {
     expect(sectors.length).toBe(REGION_NAMES.length * RING_NAMES.length)
   })
 
@@ -15,7 +15,8 @@ describe('createSectors', () => {
   })
 
   it('outermost sector of the last region reaches the rim at 2*PI', () => {
-    const s = getSectorByName(sectors, 'Vega IV')
+    const lastRing = RING_NAMES[RING_NAMES.length - 1]
+    const s = getSectorByName(sectors, `Vega ${lastRing}`)
     expect(s.arc.outer.r).toBeCloseTo(RING_NAMES.length)
     expect(s.arc.outer.theta).toBeCloseTo(2 * Math.PI)
   })

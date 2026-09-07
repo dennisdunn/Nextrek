@@ -2,8 +2,8 @@ import type { NodeId } from '../graph/UndoGraph'
 import type { BoundingArc, Polar } from '../math/types'
 import Geometry from '../math/geometry'
 
-// 16 angular regions x 4 radial rings = 64 sectors, echoing the 64
-// quadrants of the original 1971 BASIC Star Trek.
+// 16 angular regions x 6 radial rings = 96 sectors - a deeper galaxy than
+// the original 1971 BASIC Star Trek's 8x8 (64 quadrant) grid.
 export const REGION_NAMES = [
   'Aldebaran',
   'Altair',
@@ -23,7 +23,7 @@ export const REGION_NAMES = [
   'Vega',
 ]
 
-export const RING_NAMES = ['I', 'II', 'III', 'IV']
+export const RING_NAMES = ['I', 'II', 'III', 'IV', 'V', 'VI']
 
 export interface Sector {
   name: string
