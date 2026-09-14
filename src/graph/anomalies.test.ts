@@ -30,6 +30,14 @@ describe('chamber', () => {
     expect(g.neighbors('c').sort()).toEqual(['b', 'd'])
   })
 
+  it('reuses an existing edge instead of adding a duplicate when entry and target are already adjacent', () => {
+    const g = ring()
+    chamber(g, 'b', 'c') // b->c already exists in the ring
+    const forwardEdges = g.edges.filter((e) => e.from === 'b' && e.to === 'c')
+    expect(forwardEdges.length).toBe(1)
+    expect(g.neighbors('c')).toEqual(['d'])
+  })
+
   it('undoes as a single step', () => {
     const g = ring()
     const depthBefore = g.undoDepth
@@ -67,6 +75,13 @@ describe('conduit', () => {
     expect(g.neighbors('d')).toContain('a')
   })
 
+  it('does not duplicate a direction that is already adjacent', () => {
+    const g = ring()
+    conduit(g, 'a', 'b') // a<->b already exists in the ring
+    expect(g.edges.filter((e) => e.from === 'a' && e.to === 'b').length).toBe(1)
+    expect(g.edges.filter((e) => e.from === 'b' && e.to === 'a').length).toBe(1)
+  })
+
   it('undoes both edges in one call', () => {
     const g = ring()
     const depthBefore = g.undoDepth
@@ -84,6 +99,14 @@ describe('gate', () => {
     gate(g, 'a', 'd')
     expect(g.neighbors('a')).toContain('d')
     expect(g.neighbors('d')).not.toContain('a')
+  })
+
+  it('is a no-op (nothing to undo) if the edge already exists', () => {
+    const g = ring()
+    const depthBefore = g.undoDepth
+    gate(g, 'a', 'b') // a->b already exists in the ring
+    expect(g.undoDepth).toBe(depthBefore)
+    expect(g.edges.filter((e) => e.from === 'a' && e.to === 'b').length).toBe(1)
   })
 
   it('undo removes the shortcut', () => {

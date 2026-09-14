@@ -1,14 +1,18 @@
 import { useCallback, useMemo, useState } from 'react'
-import { chamber, conduit, gate, well } from '../graph/anomalies'
 import type { NodeId } from '../graph/UndoGraph'
 import { sectorId } from './cartography'
 import { createGalaxy, disengageWarp, engageWarp, type CreateGalaxyOptions } from './galaxy'
 import { stardateCost, STARTING_STARDATE, tacticalAlert } from './mission'
-import { knownSectors, sensedHostiles } from './sensors'
-import { canAfford, moveCost, STARTING_ENERGY, WARP_ENGAGE_COST } from './ship'
+import { knownSectors, sensedAnomalies, sensedHostiles } from './sensors'
+import {
+  canAfford,
+  longRangeScanCost,
+  moveCost,
+  STARTING_ENERGY,
+  subspaceScanCost,
+  WARP_ENGAGE_COST,
+} from './ship'
 import { allocate, refund, REFUND_EFFICIENCY, type EnergyPools, type Subsystem } from './subsystems'
-
-export type AnomalyKind = 'chamber' | 'well' | 'conduit' | 'gate'
 
 export interface HuntState {
   position: NodeId
@@ -16,13 +20,17 @@ export interface HuntState {
   stardate: number
   energy: EnergyPools
   visited: Set<NodeId>
+  /** Sectors a long-range scan has revealed - what the strategic map shows, beyond what's been visited. */
+  scanned: Set<NodeId>
+  /** Sectors a subspace scan has checked for an anomaly (whether or not it found one). */
+  scannedAnomalies: Set<NodeId>
   log: string[]
 }
 
 /**
  * React glue around the UndoGraph-backed galaxy. The graph is mutable and
  * lives outside React state; a version counter forces a re-render whenever
- * a mutation (move, warp, anomaly, undo) changes what the graph reports.
+ * a mutation (move, warp, undo) changes what the graph reports.
  */
 export function useGalaxy(options?: CreateGalaxyOptions) {
   const galaxy = useMemo(() => createGalaxy(options), [])
@@ -34,6 +42,8 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     stardate: STARTING_STARDATE,
     energy: { reserve: STARTING_ENERGY, shields: 0, phasers: 0 },
     visited: new Set([home]),
+    scanned: new Set(),
+    scannedAnomalies: new Set(),
     log: ['Sensors online. Awaiting orders.'],
   })
 
@@ -45,7 +55,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
 
   const currentSector = galaxy.getNode(state.position)
   const neighbors = galaxy.neighbors(state.position)
-  const known = knownSectors(galaxy, state.position, state.visited)
+  const known = knownSectors(state.visited, state.scanned)
   const sensedDanger = sensedHostiles(galaxy, state.position)
   const alert = tacticalAlert(Boolean(currentSector?.hostile), sensedDanger.length)
 
@@ -66,6 +76,9 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
         visited: new Set(s.visited).add(target),
       }))
       appendLog(`Moved to ${sector?.name ?? target}. (-${cost} energy)`)
+      if (sensedAnomalies(galaxy, target).length > 0) {
+        appendLog('Subspace variance detected nearby.')
+      }
       return true
     },
     [galaxy, state.position, state.warpEngaged, state.energy.reserve, appendLog],
@@ -109,37 +122,44 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     [appendLog],
   )
 
-  const triggerAnomaly = useCallback(
-    (kind: AnomalyKind, target: NodeId) => {
-      switch (kind) {
-        case 'chamber':
-          chamber(galaxy, state.position, target)
-          appendLog(`Subspace chamber detected near ${target}.`)
-          break
-        case 'well':
-          well(galaxy, target)
-          appendLog(`Subspace well collapsing all exits from ${target}.`)
-          break
-        case 'conduit':
-          conduit(galaxy, state.position, target)
-          appendLog(`Subspace conduit linked to ${target}.`)
-          break
-        case 'gate':
-          gate(galaxy, state.position, target)
-          appendLog(`Subspace gate opened to ${target}.`)
-          break
-      }
-      bump()
-    },
-    [galaxy, state.position, appendLog, bump],
-  )
+  const longRangeScan = useCallback(() => {
+    const cost = longRangeScanCost(state.warpEngaged)
+    if (!canAfford(state.energy.reserve, cost)) {
+      appendLog('Insufficient energy for a long-range scan.')
+      return false
+    }
+    const targets = galaxy.neighbors(state.position)
+    setState((s) => ({
+      ...s,
+      energy: { ...s.energy, reserve: s.energy.reserve - cost },
+      scanned: new Set([...s.scanned, ...targets]),
+    }))
+    appendLog(
+      `Long-range scan complete: ${targets.length} sector${targets.length === 1 ? '' : 's'} mapped. (-${cost} energy)`,
+    )
+    return true
+  }, [galaxy, state.position, state.warpEngaged, state.energy.reserve, appendLog])
 
-  const undoAnomaly = useCallback(() => {
-    const reverted = galaxy.undo()
-    if (reverted) appendLog('An anomaly has collapsed on its own.')
-    bump()
-    return reverted
-  }, [galaxy, appendLog, bump])
+  const subspaceScan = useCallback(() => {
+    const cost = subspaceScanCost(state.warpEngaged)
+    if (!canAfford(state.energy.reserve, cost)) {
+      appendLog('Insufficient energy for a subspace scan.')
+      return false
+    }
+    const targets = galaxy.neighbors(state.position)
+    const found = targets.filter((id) => galaxy.getNode(id)?.anomaly).length
+    setState((s) => ({
+      ...s,
+      energy: { ...s.energy, reserve: s.energy.reserve - cost },
+      scannedAnomalies: new Set([...s.scannedAnomalies, ...targets]),
+    }))
+    appendLog(
+      found > 0
+        ? `Subspace scan complete: anomaly pinpointed in ${found} sector${found === 1 ? '' : 's'}. (-${cost} energy)`
+        : `Subspace scan complete: no anomalies in range. (-${cost} energy)`,
+    )
+    return true
+  }, [galaxy, state.position, state.warpEngaged, state.energy.reserve, appendLog])
 
   return {
     galaxy,
@@ -147,13 +167,14 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     currentSector,
     neighbors,
     known,
+    anomalyKnown: state.scannedAnomalies,
     sensedDanger,
     alert,
     moveTo,
     toggleWarp,
     allocateEnergy,
     refundEnergy,
-    triggerAnomaly,
-    undoAnomaly,
+    longRangeScan,
+    subspaceScan,
   }
 }

@@ -6,8 +6,10 @@ interface GalaxyMapProps {
   galaxy: Galaxy
   position: NodeId
   neighbors: NodeId[]
-  /** Sectors with real sensor data (visited or currently adjacent) - everything else renders as unknown. */
+  /** Sectors a long-range scan (or a visit) has revealed - everything else renders as unknown. */
   known: ReadonlySet<NodeId>
+  /** Sectors a subspace scan has checked for an anomaly. */
+  anomalyKnown: ReadonlySet<NodeId>
   onSelect: (id: NodeId) => void
 }
 
@@ -36,7 +38,7 @@ function sectorPath(inner: { r: number; theta: number }, outer: { r: number; the
   ].join(' ')
 }
 
-export function GalaxyMap({ galaxy, position, neighbors, known, onSelect }: GalaxyMapProps) {
+export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, onSelect }: GalaxyMapProps) {
   const sectors = [...galaxy.nodes.entries()]
   // Scale to whatever the outermost ring actually is, so the map stays
   // correctly proportioned regardless of how many rings there are.
@@ -55,10 +57,12 @@ export function GalaxyMap({ galaxy, position, neighbors, known, onSelect }: Gala
         const isReachable = neighbors.includes(id)
         const isKnown = known.has(id)
         const isHostile = isKnown && sector.hostile
+        const isAnomaly = anomalyKnown.has(id) && Boolean(sector.anomaly)
         const classes = ['sector']
         if (isHere) classes.push('sector--here')
         if (isReachable) classes.push('sector--reachable')
         if (isHostile) classes.push('sector--hostile')
+        if (isAnomaly) classes.push('sector--anomaly')
         if (!isKnown) classes.push('sector--unknown')
         return (
           <path
@@ -69,7 +73,9 @@ export function GalaxyMap({ galaxy, position, neighbors, known, onSelect }: Gala
           >
             <title>
               {sector.name}
-              {isHostile ? ' (hostile contact)' : !isKnown ? ' (unscanned)' : ''}
+              {isHostile ? ' (hostile contact)' : ''}
+              {isAnomaly ? ` (${sector.anomaly!.kind} anomaly)` : ''}
+              {!isKnown ? ' (unscanned)' : ''}
             </title>
           </path>
         )

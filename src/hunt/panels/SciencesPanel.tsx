@@ -1,7 +1,6 @@
 import type { NodeId } from '../../graph/UndoGraph'
 import { GalaxyMap } from '../GalaxyMap'
 import type { Galaxy } from '../galaxy'
-import type { AnomalyKind } from '../useGalaxy'
 import { Panel } from './Panel'
 
 export interface SciencesPanelProps {
@@ -9,8 +8,12 @@ export interface SciencesPanelProps {
   position: NodeId
   neighbors: NodeId[]
   known: ReadonlySet<NodeId>
+  anomalyKnown: ReadonlySet<NodeId>
   onSelect: (id: NodeId) => void
-  onScanAnomaly: (kind: AnomalyKind) => void
+  lrsCost: number
+  subspaceCost: number
+  onLongRangeScan: () => void
+  onSubspaceScan: () => void
 }
 
 export function SciencesPanel({
@@ -18,24 +21,29 @@ export function SciencesPanel({
   position,
   neighbors,
   known,
+  anomalyKnown,
   onSelect,
-  onScanAnomaly,
+  lrsCost,
+  subspaceCost,
+  onLongRangeScan,
+  onSubspaceScan,
 }: SciencesPanelProps) {
   return (
     <Panel title="Sciences" accent="sciences" className="panel--sciences">
-      <GalaxyMap galaxy={galaxy} position={position} neighbors={neighbors} known={known} onSelect={onSelect} />
-      <div className="anomaly-controls">
-        <button type="button" onClick={() => onScanAnomaly('chamber')}>
-          Chamber
+      <GalaxyMap
+        galaxy={galaxy}
+        position={position}
+        neighbors={neighbors}
+        known={known}
+        anomalyKnown={anomalyKnown}
+        onSelect={onSelect}
+      />
+      <div className="scan-controls">
+        <button type="button" onClick={onLongRangeScan}>
+          Long-range scan ({lrsCost})
         </button>
-        <button type="button" onClick={() => onScanAnomaly('well')}>
-          Well
-        </button>
-        <button type="button" onClick={() => onScanAnomaly('conduit')}>
-          Conduit
-        </button>
-        <button type="button" onClick={() => onScanAnomaly('gate')}>
-          Gate
+        <button type="button" onClick={onSubspaceScan}>
+          Subspace scan ({subspaceCost})
         </button>
       </div>
     </Panel>

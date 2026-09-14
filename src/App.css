@@ -114,6 +114,18 @@
   stroke-width: 1.5;
 }
 
+.sector--anomaly {
+  stroke: #e879f9;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.sector--hostile.sector--anomaly {
+  stroke: var(--danger);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
 .sector--unknown {
   fill: rgba(255, 255, 255, 0.015);
   stroke: rgba(255, 255, 255, 0.05);
@@ -220,7 +232,7 @@
   accent-color: #c084fc;
 }
 
-.anomaly-controls {
+.scan-controls {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
