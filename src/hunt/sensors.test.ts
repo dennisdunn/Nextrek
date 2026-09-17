@@ -43,8 +43,8 @@ describe('sensedAnomalies', () => {
     const home = sectorId(0, 0)
     const neighbor = galaxy.neighbors(home)[0]
     const nonNeighbor = sectorId(8, 3)
-    galaxy.setNode(neighbor, { ...galaxy.getNode(neighbor)!, anomaly: { kind: 'well' } })
-    galaxy.setNode(nonNeighbor, { ...galaxy.getNode(nonNeighbor)!, anomaly: { kind: 'well' } })
+    galaxy.setNode(neighbor, { ...galaxy.getNode(neighbor)!, anomaly: { kind: 'barrier' } })
+    galaxy.setNode(nonNeighbor, { ...galaxy.getNode(nonNeighbor)!, anomaly: { kind: 'barrier' } })
 
     const sensed = sensedAnomalies(galaxy, home)
     expect(sensed).toContain(neighbor)

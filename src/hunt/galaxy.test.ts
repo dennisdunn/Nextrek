@@ -13,6 +13,19 @@ describe('createGalaxy', () => {
     expect(galaxy.getNode(sectorId(0, 0))?.hostile).toBe(false)
   })
 
+  it('never seeds a hostile in a barrier sector, even at density 1', () => {
+    // cyclic [density-check, kind-pick]: 0 always passes the density roll,
+    // 0.3 * 4 = 1 -> KINDS[1] = 'barrier' - every non-home sector becomes one
+    let i = 0
+    const rng = () => [0, 0.3][i++ % 2]
+    const galaxy = createGalaxy({ rng, anomalyDensity: 1, hostileDensity: 1 })
+    for (const [id, sector] of galaxy.nodes) {
+      if (id === sectorId(0, 0)) continue
+      expect(sector.anomaly?.kind).toBe('barrier')
+      expect(sector.hostile).toBe(false)
+    }
+  })
+
   it('home sector has up to 8 Moore neighbors in impulse space, minus the missing inward ring', () => {
     const galaxy = createGalaxy()
     const neighbors = galaxy.neighbors(sectorId(0, 0))

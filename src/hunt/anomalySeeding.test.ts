@@ -26,10 +26,10 @@ describe('pickAnomalyPlacements', () => {
     expect(placements.has('a')).toBe(false)
   })
 
-  it('places a well with no link when the roll picks that kind', () => {
-    // rng sequence per candidate: [density-check, kind-pick]; 0.3 * 4 = 1 -> KINDS[1] = 'well'
+  it('places a barrier with no link when the roll picks that kind', () => {
+    // rng sequence per candidate: [density-check, kind-pick]; 0.3 * 4 = 1 -> KINDS[1] = 'barrier'
     const placements = pickAnomalyPlacements(IDS, 'a', 1, scripted([0, 0.3]), ringNeighbors)
-    expect(placements.get('b')).toEqual({ kind: 'well' })
+    expect(placements.get('b')).toEqual({ kind: 'barrier' })
   })
 
   it('places a chamber whose link is a real neighbor', () => {
@@ -87,11 +87,10 @@ describe('applyAnomalyPlacements', () => {
     expect(applyAnomalyPlacements(edges, new Map())).toEqual(edges)
   })
 
-  it('well strips every outgoing edge from the trap sector', () => {
-    const next = applyAnomalyPlacements(ring(), new Map([['c', { kind: 'well' as const }]]))
-    expect(next.some((e) => e.from === 'c')).toBe(false)
-    // incoming edges are untouched
-    expect(next.some((e) => e.from === 'b' && e.to === 'c')).toBe(true)
+  it('leaves a barrier sector fully connected - it stays dormant until a subspace scan activates it', () => {
+    const edges = ring()
+    const next = applyAnomalyPlacements(edges, new Map([['c', { kind: 'barrier' as const }]]))
+    expect(next).toEqual(edges)
   })
 
   it('chamber removes the return edge and reuses the existing forward edge (no duplicate)', () => {
@@ -118,11 +117,12 @@ describe('applyAnomalyPlacements', () => {
     const next = applyAnomalyPlacements(
       ring(),
       new Map([
-        ['c', { kind: 'well' as const }],
+        ['c', { kind: 'barrier' as const }],
         ['a', { kind: 'gate' as const, link: 'd' }],
       ]),
     )
-    expect(next.some((e) => e.from === 'c')).toBe(false)
+    // barrier is dormant (no edge change) - only the gate's shortcut shows up
+    expect(next.some((e) => e.from === 'c')).toBe(true)
     expect(next.some((e) => e.from === 'a' && e.to === 'd')).toBe(true)
   })
 })

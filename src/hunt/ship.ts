@@ -26,6 +26,11 @@ export const LRS_COST_WARP = 70
 /** Subspace scans are exotic-physics sensing, pricier than ordinary LRS by this multiplier. */
 export const SUBSPACE_SCAN_MULTIPLIER = 2
 
+// Flying into a revealed barrier doesn't go anywhere - the ship rebounds off
+// it - so this is deliberately much cheaper than an actual move, just enough
+// to make bumping into a known hazard a real (if minor) mistake.
+export const BARRIER_BOUNCE_COST = 5
+
 export function longRangeScanCost(warpEngaged: boolean): number {
   return warpEngaged ? LRS_COST_WARP : LRS_COST_IMPULSE
 }

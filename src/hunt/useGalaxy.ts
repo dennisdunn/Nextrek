@@ -1,10 +1,12 @@
 import { useCallback, useMemo, useState } from 'react'
+import { barrier } from '../graph/anomalies'
 import type { NodeId } from '../graph/UndoGraph'
 import { sectorId } from './cartography'
 import { createGalaxy, disengageWarp, engageWarp, type CreateGalaxyOptions } from './galaxy'
 import { stardateCost, STARTING_STARDATE, tacticalAlert } from './mission'
 import { knownSectors, sensedAnomalies, sensedHostiles } from './sensors'
 import {
+  BARRIER_BOUNCE_COST,
   canAfford,
   longRangeScanCost,
   moveCost,
@@ -62,7 +64,19 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
   const moveTo = useCallback(
     (target: NodeId) => {
       const edge = galaxy.outgoingEdges(state.position).find((e) => e.to === target)
-      if (!edge) return false
+      if (!edge) {
+        // A revealed barrier has no inbound edge any more, but GalaxyMap
+        // still offers it as a click target so the attempt registers as a
+        // deliberate mistake rather than silently doing nothing - the ship
+        // rebounds off it for a small energy cost instead of moving.
+        const sector = galaxy.getNode(target)
+        if (sector?.anomaly?.kind === 'barrier' && state.scannedAnomalies.has(target)) {
+          const cost = Math.min(BARRIER_BOUNCE_COST, state.energy.reserve)
+          setState((s) => ({ ...s, energy: { ...s.energy, reserve: s.energy.reserve - cost } }))
+          appendLog(`${sector.name} - subspace barrier deflects the ship. (-${cost} energy)`)
+        }
+        return false
+      }
       const cost = moveCost(state.warpEngaged, edge.data?.distance ?? 1)
       if (!canAfford(state.energy.reserve, cost)) {
         appendLog('Insufficient energy to move - reserves critical.')
@@ -82,7 +96,14 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
       }
       return true
     },
-    [galaxy, state.position, state.warpEngaged, state.energy.reserve, appendLog],
+    [
+      galaxy,
+      state.position,
+      state.warpEngaged,
+      state.energy.reserve,
+      state.scannedAnomalies,
+      appendLog,
+    ],
   )
 
   const toggleWarp = useCallback(() => {
@@ -149,6 +170,19 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     }
     const targets = galaxy.neighbors(state.position)
     const found = targets.filter((id) => galaxy.getNode(id)?.anomaly).length
+    // A barrier is dormant (ordinary, walkable space) until a subspace scan
+    // actually resolves it - the scan itself is what collapses the local
+    // subspace field into an impassable one, so the edge-stripping mutation
+    // happens here, not at world-gen (see anomalySeeding.ts).
+    const newBarriers = targets.filter(
+      (id) => !state.scannedAnomalies.has(id) && galaxy.getNode(id)?.anomaly?.kind === 'barrier',
+    )
+    if (newBarriers.length > 0) {
+      galaxy.transaction(() => {
+        for (const id of newBarriers) barrier(galaxy, id)
+      })
+      bump()
+    }
     setState((s) => ({
       ...s,
       energy: { ...s.energy, reserve: s.energy.reserve - cost },
@@ -159,8 +193,11 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
         ? `Subspace scan complete: anomaly pinpointed in ${found} sector${found === 1 ? '' : 's'}. (-${cost} energy)`
         : `Subspace scan complete: no anomalies in range. (-${cost} energy)`,
     )
+    if (newBarriers.length > 0) {
+      appendLog('Subspace barrier crystallizes - approach routes into it seal off.')
+    }
     return true
-  }, [galaxy, state.position, state.warpEngaged, state.energy.reserve, appendLog])
+  }, [galaxy, state.position, state.warpEngaged, state.energy.reserve, state.scannedAnomalies, appendLog, bump])
 
   return {
     galaxy,

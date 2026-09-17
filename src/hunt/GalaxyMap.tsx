@@ -1,6 +1,7 @@
+import { useMemo } from 'react'
 import { polar2rect } from '../math/convert'
 import type { NodeId } from '../graph/UndoGraph'
-import type { Galaxy } from './galaxy'
+import { impulseNeighbors, type Galaxy } from './galaxy'
 
 interface GalaxyMapProps {
   galaxy: Galaxy
@@ -44,6 +45,12 @@ export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, on
   // correctly proportioned regardless of how many rings there are.
   const maxRadius = sectors.reduce((max, [, sector]) => Math.max(max, sector.arc.outer.r), 1)
   const scale = MAX_DRAW_RADIUS / maxRadius
+  // A revealed barrier has no inbound edge any more, so it drops out of
+  // `neighbors` (live graph reachability) the instant it's scanned. Still
+  // offer it as a click target when it's physically next door, so trying to
+  // fly into it registers as a deliberate (costed) mistake instead of the
+  // sector just going inert with no feedback at all.
+  const nearby = useMemo(() => new Set(impulseNeighbors(position)), [position])
 
   return (
     // A plain div carries the flex sizing (flex:1; min-height:0 in CSS) - an
@@ -59,15 +66,17 @@ export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, on
       >
         {sectors.map(([id, sector]) => {
           const isHere = id === position
-          const isReachable = neighbors.includes(id)
           const isKnown = known.has(id)
           const isHostile = isKnown && sector.hostile
           const isAnomaly = anomalyKnown.has(id) && Boolean(sector.anomaly)
+          const isBarrier = isAnomaly && sector.anomaly?.kind === 'barrier'
+          const isReachable = neighbors.includes(id) || (isBarrier && nearby.has(id))
           const classes = ['sector']
           if (isHere) classes.push('sector--here')
           if (isReachable) classes.push('sector--reachable')
           if (isHostile) classes.push('sector--hostile')
           if (isAnomaly) classes.push('sector--anomaly')
+          if (isBarrier) classes.push('sector--barrier')
           if (isKnown) classes.push('sector--known')
           else classes.push('sector--unknown')
           return (
@@ -80,7 +89,7 @@ export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, on
               <title>
                 {sector.name}
                 {isHostile ? ' (hostile contact)' : ''}
-                {isAnomaly ? ` (${sector.anomaly!.kind} anomaly)` : ''}
+                {isAnomaly ? ` (${sector.anomaly!.kind} anomaly${isBarrier ? ' - impassable' : ''})` : ''}
                 {!isKnown ? ' (unscanned)' : ''}
               </title>
             </path>

@@ -167,6 +167,20 @@
   stroke-dasharray: 5 3;
 }
 
+/*
+ * A revealed barrier is a different kind of hazard than a generic anomaly -
+ * you can't fly into it at all, cost included (see ship.ts's
+ * BARRIER_BOUNCE_COST) - so it gets its own caution-amber look instead of
+ * the generic anomaly magenta. Comes after --anomaly and --reachable so it
+ * wins the fill/stroke fight for a sector that's revealed, known, and
+ * (per GalaxyMap's click-target override) still nominally "reachable".
+ */
+.sector--barrier {
+  fill: rgba(251, 146, 60, 0.4);
+  stroke: #fb923c;
+  stroke-width: 3;
+}
+
 .readout {
   display: grid;
   grid-template-columns: auto 1fr;

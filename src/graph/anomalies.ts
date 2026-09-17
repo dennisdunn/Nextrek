@@ -7,7 +7,7 @@ import { UndoGraph } from './UndoGraph'
  * graph.undo() call cleanly removes it, however many edges it touched.
  */
 
-export type AnomalyKind = 'chamber' | 'well' | 'conduit' | 'gate'
+export type AnomalyKind = 'chamber' | 'barrier' | 'conduit' | 'gate'
 
 function hasEdge<N, E>(graph: UndoGraph<N, E>, from: NodeId, to: NodeId): boolean {
   return graph.edges.some((e) => e.from === from && e.to === to)
@@ -36,11 +36,12 @@ export function chamber<N, E>(
 }
 
 /**
- * Well: a trap node with every outgoing edge stripped away. Still reachable,
- * never escapable (until someone Undo()s the anomaly).
+ * Barrier: a node with every incoming edge stripped away. Nothing can route
+ * into it any more, but anyone already inside (or leaving via one of its own
+ * outgoing edges) is unaffected - it blocks entry, not exit.
  */
-export function well<N, E>(graph: UndoGraph<N, E>, nodeId: NodeId): void {
-  graph.removeEdges((e) => e.from === nodeId)
+export function barrier<N, E>(graph: UndoGraph<N, E>, nodeId: NodeId): void {
+  graph.removeEdges((e) => e.to === nodeId)
 }
 
 /**

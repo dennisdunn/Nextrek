@@ -69,10 +69,12 @@ export function createGalaxy(options: CreateGalaxyOptions = {}): Galaxy {
   const nodes: [string, SectorData][] = sectors.map((s) => {
     const id = sectorId(s.region, s.ring)
     const isHome = id === homeId
-    return [
-      id,
-      { ...s, hostile: !isHome && rng() < hostileDensity, anomaly: anomalyPlacements.get(id) },
-    ]
+    const anomaly = anomalyPlacements.get(id)
+    // A barrier is a navigational hazard, not a combat one - keep the two
+    // concerns separate rather than layering a hostile encounter onto a
+    // sector the player is already treating as "avoid re-entering this."
+    const isBarrier = anomaly?.kind === 'barrier'
+    return [id, { ...s, hostile: !isHome && !isBarrier && rng() < hostileDensity, anomaly }]
   })
 
   // edges never actually carry `.data` here (only a pushed warp network

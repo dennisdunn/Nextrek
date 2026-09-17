@@ -5,13 +5,13 @@ export interface AnomalyPlacement {
   kind: AnomalyKind
   /**
    * The sector this one is linked to: the blocked-return direction for a
-   * chamber, the far end for a conduit/gate. Unused for a well - it just
-   * strips its own exits.
+   * chamber, the far end for a conduit/gate. Unused for a barrier - it just
+   * cuts off its own approaches.
    */
   link?: NodeId
 }
 
-const KINDS: AnomalyKind[] = ['chamber', 'well', 'conduit', 'gate']
+const KINDS: AnomalyKind[] = ['chamber', 'barrier', 'conduit', 'gate']
 
 /**
  * Decide where subspace anomalies go when a galaxy is generated. Pure and
@@ -36,7 +36,7 @@ export function pickAnomalyPlacements(
     if (rng() >= density) continue
     const kind = KINDS[Math.floor(rng() * KINDS.length)]
 
-    if (kind === 'well') {
+    if (kind === 'barrier') {
       placements.set(id, { kind })
       continue
     }
@@ -84,8 +84,11 @@ export function applyAnomalyPlacements(
   let next = [...edges]
   for (const [id, placement] of placements) {
     switch (placement.kind) {
-      case 'well':
-        next = next.filter((e) => e.from !== id)
+      // A barrier is dormant until a subspace scan actually reveals it -
+      // see useGalaxy.ts's subspaceScan(), which pushes the edge-stripping
+      // mutation onto the live graph at that point. Until then the sector
+      // is ordinary, walkable space, so world-gen leaves its edges alone.
+      case 'barrier':
         break
       case 'chamber': {
         const entry = placement.link!

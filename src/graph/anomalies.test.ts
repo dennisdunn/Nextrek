@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { UndoGraph } from './UndoGraph'
-import { chamber, conduit, gate, well } from './anomalies'
+import { barrier, chamber, conduit, gate } from './anomalies'
 
 function ring(): UndoGraph<undefined, undefined> {
   return new UndoGraph(
@@ -49,21 +49,23 @@ describe('chamber', () => {
   })
 })
 
-describe('well', () => {
-  it('strips every outgoing edge from the trap node', () => {
+describe('barrier', () => {
+  it('strips every incoming edge to the walled-off node', () => {
     const g = ring()
-    well(g, 'c')
-    expect(g.neighbors('c')).toEqual([])
-    // incoming edges into the trap are untouched - you can still fall in
-    expect(g.neighbors('b').sort()).toEqual(['a', 'c'])
-    expect(g.neighbors('d')).toEqual(['c'])
+    barrier(g, 'c')
+    // nobody can route into c any more
+    expect(g.neighbors('b')).toEqual(['a'])
+    expect(g.neighbors('d')).toEqual([])
+    // c's own outgoing edges are untouched - it can still leave, just never be re-entered
+    expect(g.neighbors('c').sort()).toEqual(['b', 'd'])
   })
 
   it('undo restores the stripped edges', () => {
     const g = ring()
-    well(g, 'c')
+    barrier(g, 'c')
     g.undo()
-    expect(g.neighbors('c').sort()).toEqual(['b', 'd'])
+    expect(g.neighbors('b').sort()).toEqual(['a', 'c'])
+    expect(g.neighbors('d')).toEqual(['c'])
   })
 })
 
