@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Edge } from '../graph/UndoGraph'
-import { buildWarpEdges } from './warpNetwork'
+import { buildWarpEdges, type GalaxyEdgeData } from './warpNetwork'
 
 const IDS = ['a', 'b', 'c', 'd', 'e']
 
@@ -14,7 +14,7 @@ function chainEdges(): Edge<unknown>[] {
   return edges
 }
 
-function edgesFrom(edges: Edge<{ distance: number }>[], id: string) {
+function edgesFrom(edges: Edge<GalaxyEdgeData>[], id: string) {
   return edges.filter((e) => e.from === id)
 }
 

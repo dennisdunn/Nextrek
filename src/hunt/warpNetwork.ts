@@ -1,14 +1,21 @@
 import type { Edge, NodeId } from '../graph/UndoGraph'
 
 export interface GalaxyEdgeData {
-  /** Hop-count this edge represents under the impulse topology it was computed from. */
-  distance: number
+  /** Hop-count this edge represents under the impulse topology it was computed from - only set on warp-network edges. */
+  distance?: number
+  /**
+   * True on a conduit's own shortcut edge - lets moveTo tell "arrived via
+   * the conduit link" apart from ordinary grid adjacency into a conduit
+   * sector, since only the former is a safe landing (see anomalySeeding.ts
+   * and useGalaxy.ts's moveTo).
+   */
+  viaConduit?: boolean
 }
 
 /**
  * BFS out to `radius` hops from every sector, over `baseEdges` (the
  * graph's current impulse topology - already reflecting any anomaly
- * mutations, since a well's stripped exits or a conduit's shortcut should
+ * mutations, since a barrier's severed entry or a conduit's shortcut should
  * shape warp reach too), producing a direct edge carrying its hop-distance
  * to every sector within range.
  *

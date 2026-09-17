@@ -15,13 +15,25 @@ describe('createGalaxy', () => {
 
   it('never seeds a hostile in a barrier sector, even at density 1', () => {
     // cyclic [density-check, kind-pick]: 0 always passes the density roll,
-    // 0.3 * 4 = 1 -> KINDS[1] = 'barrier' - every non-home sector becomes one
+    // 0.1 * 3 = 0.3 -> KINDS[0] = 'barrier' - every non-home sector becomes one
     let i = 0
-    const rng = () => [0, 0.3][i++ % 2]
+    const rng = () => [0, 0.1][i++ % 2]
     const galaxy = createGalaxy({ rng, anomalyDensity: 1, hostileDensity: 1 })
     for (const [id, sector] of galaxy.nodes) {
       if (id === sectorId(0, 0)) continue
       expect(sector.anomaly?.kind).toBe('barrier')
+      expect(sector.hostile).toBe(false)
+    }
+  })
+
+  it('never seeds a hostile in a gate sector, even at density 1', () => {
+    // 0.4 * 3 = 1.2 -> KINDS[1] = 'gate'
+    let i = 0
+    const rng = () => [0, 0.4][i++ % 2]
+    const galaxy = createGalaxy({ rng, anomalyDensity: 1, hostileDensity: 1 })
+    for (const [id, sector] of galaxy.nodes) {
+      if (id === sectorId(0, 0)) continue
+      expect(sector.anomaly?.kind).toBe('gate')
       expect(sector.hostile).toBe(false)
     }
   })

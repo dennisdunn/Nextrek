@@ -64,23 +64,25 @@ export function createGalaxy(options: CreateGalaxyOptions = {}): Galaxy {
   const neighborsOf = (id: NodeId) => baseEdges.filter((e) => e.from === id).map((e) => e.to)
 
   const anomalyPlacements = pickAnomalyPlacements(allIds, homeId, anomalyDensity, rng, neighborsOf)
-  const edges = applyAnomalyPlacements(baseEdges, anomalyPlacements)
+  // Base grid edges never actually carry `.data` - the cast just satisfies
+  // applyAnomalyPlacements' edge-data type, which exists for a conduit's
+  // viaConduit tag and a warp edge's distance, neither of which apply here.
+  const edges = applyAnomalyPlacements(baseEdges as unknown as Edge<GalaxyEdgeData>[], anomalyPlacements)
 
   const nodes: [string, SectorData][] = sectors.map((s) => {
     const id = sectorId(s.region, s.ring)
     const isHome = id === homeId
     const anomaly = anomalyPlacements.get(id)
-    // A barrier is a navigational hazard, not a combat one - keep the two
-    // concerns separate rather than layering a hostile encounter onto a
-    // sector the player is already treating as "avoid re-entering this."
-    const isBarrier = anomaly?.kind === 'barrier'
-    return [id, { ...s, hostile: !isHome && !isBarrier && rng() < hostileDensity, anomaly }]
+    // Barrier and gate are navigational hazards, not combat ones - keep
+    // the two concerns separate rather than layering a hostile encounter
+    // onto a sector the player is already treating as a hazard to react
+    // to. A conduit sector can still have one - see moveTo's conduit
+    // handling for why that's actually safe.
+    const noHostile = anomaly?.kind === 'barrier' || anomaly?.kind === 'gate'
+    return [id, { ...s, hostile: !isHome && !noHostile && rng() < hostileDensity, anomaly }]
   })
 
-  // edges never actually carry `.data` here (only a pushed warp network
-  // does) - the cast just satisfies the graph's edge-data type, which
-  // exists for warp's per-edge distance, not for base/anomaly edges.
-  return new UndoGraph<SectorData, GalaxyEdgeData>(nodes, edges as unknown as Edge<GalaxyEdgeData>[])
+  return new UndoGraph<SectorData, GalaxyEdgeData>(nodes, edges)
 }
 
 /**

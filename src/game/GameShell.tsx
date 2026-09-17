@@ -22,10 +22,15 @@ export function GameShell() {
 
   const handleMove = useCallback(
     (target: NodeId) => {
-      if (!moveTo(target)) return
-      const sector = galaxy.getNode(target)
+      // moveTo returns where the ship actually ended up, which can differ
+      // from `target` after a gate or conduit redirect - the hostile check
+      // has to run on that real landing sector, not the one originally
+      // clicked (a gate/conduit sector is itself always hostile-free).
+      const landedAt = moveTo(target)
+      if (!landedAt) return
+      const sector = galaxy.getNode(landedAt)
       if (sector?.hostile) {
-        setEncounter({ sectorId: target, sectorName: sector.name })
+        setEncounter({ sectorId: landedAt, sectorName: sector.name })
       }
     },
     [moveTo, galaxy],
