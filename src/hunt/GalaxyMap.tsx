@@ -46,40 +46,46 @@ export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, on
   const scale = MAX_DRAW_RADIUS / maxRadius
 
   return (
-    <svg
-      viewBox={`0 0 ${SIZE} ${SIZE}`}
-      className="galaxy-map"
-      role="img"
-      aria-label="Galaxy sensor map"
-    >
-      {sectors.map(([id, sector]) => {
-        const isHere = id === position
-        const isReachable = neighbors.includes(id)
-        const isKnown = known.has(id)
-        const isHostile = isKnown && sector.hostile
-        const isAnomaly = anomalyKnown.has(id) && Boolean(sector.anomaly)
-        const classes = ['sector']
-        if (isHere) classes.push('sector--here')
-        if (isReachable) classes.push('sector--reachable')
-        if (isHostile) classes.push('sector--hostile')
-        if (isAnomaly) classes.push('sector--anomaly')
-        if (!isKnown) classes.push('sector--unknown')
-        return (
-          <path
-            key={id}
-            d={sectorPath(sector.arc.inner, sector.arc.outer, scale)}
-            className={classes.join(' ')}
-            onClick={() => isReachable && onSelect(id)}
-          >
-            <title>
-              {sector.name}
-              {isHostile ? ' (hostile contact)' : ''}
-              {isAnomaly ? ` (${sector.anomaly!.kind} anomaly)` : ''}
-              {!isKnown ? ' (unscanned)' : ''}
-            </title>
-          </path>
-        )
-      })}
-    </svg>
+    // A plain div carries the flex sizing (flex:1; min-height:0 in CSS) - an
+    // <svg> is a replaced element and its viewBox gives it an intrinsic
+    // aspect ratio, which overrides flex's height resolution and makes it
+    // ignore the container entirely. The svg below just fills this div.
+    <div className="galaxy-map">
+      <svg
+        viewBox={`0 0 ${SIZE} ${SIZE}`}
+        className="galaxy-map__svg"
+        role="img"
+        aria-label="Galaxy sensor map"
+      >
+        {sectors.map(([id, sector]) => {
+          const isHere = id === position
+          const isReachable = neighbors.includes(id)
+          const isKnown = known.has(id)
+          const isHostile = isKnown && sector.hostile
+          const isAnomaly = anomalyKnown.has(id) && Boolean(sector.anomaly)
+          const classes = ['sector']
+          if (isHere) classes.push('sector--here')
+          if (isReachable) classes.push('sector--reachable')
+          if (isHostile) classes.push('sector--hostile')
+          if (isAnomaly) classes.push('sector--anomaly')
+          if (!isKnown) classes.push('sector--unknown')
+          return (
+            <path
+              key={id}
+              d={sectorPath(sector.arc.inner, sector.arc.outer, scale)}
+              className={classes.join(' ')}
+              onClick={() => isReachable && onSelect(id)}
+            >
+              <title>
+                {sector.name}
+                {isHostile ? ' (hostile contact)' : ''}
+                {isAnomaly ? ` (${sector.anomaly!.kind} anomaly)` : ''}
+                {!isKnown ? ' (unscanned)' : ''}
+              </title>
+            </path>
+          )
+        })}
+      </svg>
+    </div>
   )
 }

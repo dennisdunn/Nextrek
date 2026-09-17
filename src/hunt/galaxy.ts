@@ -43,7 +43,7 @@ export interface CreateGalaxyOptions {
 export function createGalaxy(options: CreateGalaxyOptions = {}): Galaxy {
   const {
     hostileDensity = 0.12,
-    anomalyDensity = 0.04,
+    anomalyDensity = 0.08,
     rng = Math.random,
     homeSector = { region: 0, ring: 0 },
   } = options

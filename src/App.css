@@ -10,10 +10,26 @@
   flex: 1;
   gap: 20px;
   padding: 20px;
-  flex-wrap: wrap;
   align-items: stretch;
   min-height: 0;
   overflow: hidden;
+}
+
+/*
+ * Deliberately no flex-wrap here: `flex-wrap: wrap` combined with
+ * `align-items: stretch` and the nested flex:1 chain below it (panel body
+ * -> galaxy-map) made the browser size .panel--sciences from its content
+ * instead of the container - the map rendered at a fixed ~750-900px
+ * height regardless of viewport, silently overflowing .hunt-phase's
+ * overflow:hidden and clipping the scan buttons and comms log beneath the
+ * fold. A media query switches to a column layout on narrow screens
+ * instead, which doesn't hit the same interaction.
+ */
+@media (max-width: 860px) {
+  .hunt-phase {
+    flex-direction: column;
+    overflow-y: auto;
+  }
 }
 
 .hunt-sidebar {
@@ -82,10 +98,16 @@
   flex: 1;
   min-height: 0;
   width: 100%;
-  display: block;
   background: radial-gradient(circle at center, #131a29 0%, var(--bg) 75%);
   border-radius: 6px;
   border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.galaxy-map__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .sector {
@@ -114,21 +136,31 @@
   stroke-width: 1.5;
 }
 
-.sector--anomaly {
-  stroke: #e879f9;
-  stroke-width: 1.5;
-  stroke-dasharray: 4 3;
-}
-
-.sector--hostile.sector--anomaly {
-  stroke: var(--danger);
-  stroke-width: 1.5;
-  stroke-dasharray: 4 3;
-}
-
 .sector--unknown {
   fill: rgba(255, 255, 255, 0.015);
   stroke: rgba(255, 255, 255, 0.05);
+}
+
+/*
+ * These come after sector--unknown on purpose: a subspace scan can
+ * confirm an anomaly in a sector that long-range scan hasn't covered
+ * yet (they're independent sensor layers - see sensors.ts), so a sector
+ * can be both --anomaly and --unknown at once. The anomaly marker must
+ * win that fill/stroke fight, or a confirmed anomaly is invisible until
+ * the sector also happens to get LRS'd, defeating the point of scanning
+ * for it at all.
+ */
+.sector--anomaly {
+  fill: rgba(232, 121, 249, 0.35);
+  stroke: #e879f9;
+  stroke-width: 2.5;
+}
+
+.sector--hostile.sector--anomaly {
+  fill: rgba(232, 121, 249, 0.35);
+  stroke: var(--danger);
+  stroke-width: 2.5;
+  stroke-dasharray: 5 3;
 }
 
 .readout {
