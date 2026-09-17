@@ -117,6 +117,10 @@
   cursor: default;
 }
 
+.sector--known {
+  fill: rgba(111, 227, 255, 0.09);
+}
+
 .sector--reachable {
   fill: rgba(111, 227, 255, 0.14);
   cursor: pointer;
