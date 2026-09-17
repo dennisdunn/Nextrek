@@ -1,34 +1,44 @@
-import type { NodeId } from '../graph/UndoGraph'
+import type { Edge, NodeId } from '../graph/UndoGraph'
 import { UndoGraph } from '../graph/UndoGraph'
 import { buildGridEdges } from '../graph/gridTopology'
 import { applyAnomalyPlacements, pickAnomalyPlacements, type AnomalyPlacement } from './anomalySeeding'
 import { createSectors, REGION_NAMES, RING_NAMES, sectorId, type Sector } from './cartography'
+import { buildWarpEdges, type GalaxyEdgeData } from './warpNetwork'
 
 export interface SectorData extends Sector {
   hostile: boolean
   anomaly?: AnomalyPlacement
 }
 
-export type Galaxy = UndoGraph<SectorData, undefined>
+export type Galaxy = UndoGraph<SectorData, GalaxyEdgeData>
 
 const width = REGION_NAMES.length
 const height = RING_NAMES.length
 
+/** How far (in impulse hops) a single warp jump can reach. */
+export const WARP_RADIUS = 3
+
 /**
- * Normal space: the region axis (angular) wraps around the galaxy, the
- * ring axis (radial - center to rim) does not. Orthogonal moves only:
- * slow, deliberate travel.
+ * Impulse space: the region axis (angular) wraps around the galaxy, the
+ * ring axis (radial - center to rim) does not. Moore neighborhood - up to
+ * 8 adjacent sectors (orthogonal + diagonal) - one hop at a time.
  */
 export function normalSpaceEdges() {
-  return buildGridEdges({ width, height, wrapX: true, wrapY: false, neighborhood: 'vonNeumann' })
+  return buildGridEdges({ width, height, wrapX: true, wrapY: false, neighborhood: 'moore' })
 }
 
 /**
- * Warp space: both axes wrap and diagonal jumps are allowed, so any
- * sector is reachable from any other in one or two hops - fast travel.
+ * Grid adjacency alone, independent of the graph's current live edge
+ * state - what the ship's passive short-range sensors always reach,
+ * regardless of whether warp happens to be engaged right now (see
+ * sensors.ts's sensedHostiles/sensedAnomalies). Deliberately ignores
+ * anomaly mutations too: that's about which lanes are open for travel,
+ * not what your sensors can physically see next door.
  */
-export function warpSpaceEdges() {
-  return buildGridEdges({ width, height, wrapX: true, wrapY: true, neighborhood: 'moore' })
+export function impulseNeighbors(id: NodeId): NodeId[] {
+  return normalSpaceEdges()
+    .filter((e) => e.from === id)
+    .map((e) => e.to)
 }
 
 export interface CreateGalaxyOptions {
@@ -65,12 +75,22 @@ export function createGalaxy(options: CreateGalaxyOptions = {}): Galaxy {
     ]
   })
 
-  return new UndoGraph<SectorData, undefined>(nodes, edges)
+  // edges never actually carry `.data` here (only a pushed warp network
+  // does) - the cast just satisfies the graph's edge-data type, which
+  // exists for warp's per-edge distance, not for base/anomaly edges.
+  return new UndoGraph<SectorData, GalaxyEdgeData>(nodes, edges as unknown as Edge<GalaxyEdgeData>[])
 }
 
-/** Engage warp drive: push the fast toroidal/Moore edge-set. Undo() to disengage. */
+/**
+ * Engage warp drive: push a shortcut network reaching every sector within
+ * WARP_RADIUS impulse-hops of wherever you are, each edge carrying its
+ * hop-distance so a jump's energy cost can scale with how far it actually
+ * goes (see ship.ts's moveCost). Computed from the graph's current edges,
+ * so it must be called while still in impulse space. Undo() to disengage.
+ */
 export function engageWarp(galaxy: Galaxy): void {
-  galaxy.replaceEdges(warpSpaceEdges())
+  const allIds = [...galaxy.nodes.keys()]
+  galaxy.replaceEdges(buildWarpEdges(galaxy.edges, allIds, WARP_RADIUS))
 }
 
 /** Disengage warp drive, falling back to normal space. Returns false if warp was not engaged. */

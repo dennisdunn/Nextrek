@@ -5,17 +5,34 @@ import {
   LRS_COST_IMPULSE,
   LRS_COST_WARP,
   MOVE_COST_NORMAL,
-  MOVE_COST_WARP,
   moveCost,
   SUBSPACE_SCAN_MULTIPLIER,
   subspaceScanCost,
+  WARP_MOVE_BASE_COST,
+  WARP_MOVE_COST_PER_SECTOR,
 } from './ship'
 
 describe('moveCost', () => {
-  it('is cheaper per hop under warp than in normal space', () => {
-    expect(moveCost(true)).toBe(MOVE_COST_WARP)
+  it('impulse is always the flat per-hop cost, regardless of distance', () => {
     expect(moveCost(false)).toBe(MOVE_COST_NORMAL)
-    expect(moveCost(true)).toBeLessThan(moveCost(false))
+    expect(moveCost(false, 1)).toBe(MOVE_COST_NORMAL)
+  })
+
+  it('warp scales with distance: base cost plus a rate per sector', () => {
+    expect(moveCost(true, 1)).toBe(WARP_MOVE_BASE_COST + WARP_MOVE_COST_PER_SECTOR)
+    expect(moveCost(true, 3)).toBe(WARP_MOVE_BASE_COST + WARP_MOVE_COST_PER_SECTOR * 3)
+  })
+
+  it('a short warp hop is not cheaper than the same hop under impulse', () => {
+    // a 1-sector warp jump should never undercut just using impulse for it
+    expect(moveCost(true, 1)).toBeGreaterThanOrEqual(moveCost(false))
+  })
+
+  it('a long warp jump beats the equivalent number of impulse hops', () => {
+    const distance = 3
+    const warpCost = moveCost(true, distance)
+    const impulseCost = MOVE_COST_NORMAL * distance
+    expect(warpCost).toBeLessThan(impulseCost)
   })
 })
 

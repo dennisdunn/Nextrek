@@ -61,8 +61,9 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
 
   const moveTo = useCallback(
     (target: NodeId) => {
-      if (!galaxy.neighbors(state.position).includes(target)) return false
-      const cost = moveCost(state.warpEngaged)
+      const edge = galaxy.outgoingEdges(state.position).find((e) => e.to === target)
+      if (!edge) return false
+      const cost = moveCost(state.warpEngaged, edge.data?.distance ?? 1)
       if (!canAfford(state.energy.reserve, cost)) {
         appendLog('Insufficient energy to move - reserves critical.')
         return false
