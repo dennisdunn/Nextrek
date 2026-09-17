@@ -164,7 +164,6 @@
   fill: rgba(232, 121, 249, 0.35);
   stroke: var(--danger);
   stroke-width: 2.5;
-  stroke-dasharray: 5 3;
 }
 
 /*
@@ -298,13 +297,23 @@
   font-family: var(--mono);
   font-size: 13px;
   display: flex;
-  flex-direction: column;
+  /*
+   * Rendered newest-first (see CommsPanel.tsx) and laid out bottom-to-top -
+   * a reversed flex column's resting scroll position (0) shows whatever is
+   * at its main-start, which this pairing puts at the newest line. New
+   * lines then stay in view with no scrollTop code needed.
+   */
+  flex-direction: column-reverse;
   gap: 4px;
 }
 
 .log li {
   border-bottom: 1px dashed var(--border);
   padding-bottom: 4px;
+}
+
+.log__line--anomaly {
+  color: #ffd166;
 }
 
 .kill-phase {
