@@ -166,19 +166,6 @@
   stroke-width: 2.5;
 }
 
-/*
- * A revealed barrier is a different kind of hazard than a generic anomaly -
- * walking into it seals it behind you for good - so it gets its own
- * caution-amber look instead of the generic anomaly magenta. Comes after
- * --anomaly and --reachable so it wins the fill/stroke fight while it's
- * still open (known, and a normal click target until someone enters it).
- */
-.sector--barrier {
-  fill: rgba(251, 146, 60, 0.4);
-  stroke: #fb923c;
-  stroke-width: 3;
-}
-
 .readout {
   display: grid;
   grid-template-columns: auto 1fr;

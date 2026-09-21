@@ -69,7 +69,6 @@ export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, on
           if (isReachable) classes.push('sector--reachable')
           if (isHostile) classes.push('sector--hostile')
           if (isAnomaly) classes.push('sector--anomaly')
-          if (isBarrier) classes.push('sector--barrier')
           if (isKnown) classes.push('sector--known')
           else classes.push('sector--unknown')
           return (
