@@ -49,6 +49,17 @@ export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, on
   const maxRadius = sectors.reduce((max, [, sector]) => Math.max(max, sector.arc.outer.r), 1)
   const scale = MAX_DRAW_RADIUS / maxRadius
 
+  // A conduit's link only draws once both ends have been identified
+  // (visited or scanned) - id < link dedupes the pair, since each side
+  // carries a link back to the other.
+  const conduitLinks = sectors.filter(
+    ([id, sector]) =>
+      sector.anomaly?.kind === 'conduit' &&
+      id < sector.anomaly.link! &&
+      anomalyKnown.has(id) &&
+      anomalyKnown.has(sector.anomaly.link!),
+  )
+
   return (
     // A plain div carries the flex sizing (flex:1; min-height:0 in CSS) - an
     // <svg> is a replaced element and its viewBox gives it an intrinsic
@@ -102,6 +113,15 @@ export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, on
                   )
                 })()}
             </g>
+          )
+        })}
+        {conduitLinks.map(([id, sector]) => {
+          const other = sector.anomaly!.link!
+          const otherSector = galaxy.getNode(other)!
+          const p1 = sectorCenter(sector.arc.inner, sector.arc.outer, scale)
+          const p2 = sectorCenter(otherSector.arc.inner, otherSector.arc.outer, scale)
+          return (
+            <line key={`conduit-${id}-${other}`} className="conduit-link" x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} />
           )
         })}
       </svg>
