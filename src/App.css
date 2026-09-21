@@ -187,6 +187,33 @@
   fill: rgba(74, 222, 128, 0.25);
 }
 
+/*
+ * The three anomaly markers all share the wedge's own magenta - color says
+ * "anomaly", shape says which kind, so they read as a family at a glance
+ * rather than three unrelated hazards.
+ */
+.sector-marker--barrier {
+  fill: rgba(232, 121, 249, 0.2);
+  stroke: #e879f9;
+  stroke-width: 1.5;
+}
+
+.sector-marker--gate {
+  fill: none;
+  stroke: #e879f9;
+  stroke-width: 1.5;
+}
+
+.sector-marker--gate .sector-marker__core {
+  fill: #e879f9;
+}
+
+.sector-marker--conduit {
+  fill: rgba(232, 121, 249, 0.25);
+  stroke: #e879f9;
+  stroke-width: 1.5;
+}
+
 /* Drawn on top of the wedges once both ends of a conduit are identified. */
 .conduit-link {
   stroke: #e879f9;
