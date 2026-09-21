@@ -38,6 +38,10 @@ function sectorPath(inner: { r: number; theta: number }, outer: { r: number; the
   ].join(' ')
 }
 
+function sectorCenter(inner: { r: number; theta: number }, outer: { r: number; theta: number }, scale: number) {
+  return toScreen((inner.r + outer.r) / 2, (inner.theta + outer.theta) / 2, scale)
+}
+
 export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, onSelect }: GalaxyMapProps) {
   const sectors = [...galaxy.nodes.entries()]
   // Scale to whatever the outermost ring actually is, so the map stays
@@ -63,6 +67,7 @@ export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, on
           const isHostile = isKnown && sector.hostile
           const isAnomaly = anomalyKnown.has(id) && Boolean(sector.anomaly)
           const isBarrier = isAnomaly && sector.anomaly?.kind === 'barrier'
+          const isBase = isKnown && sector.starbase
           const isReachable = neighbors.includes(id)
           const classes = ['sector']
           if (isHere) classes.push('sector--here')
@@ -72,19 +77,31 @@ export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, on
           if (isKnown) classes.push('sector--known')
           else classes.push('sector--unknown')
           return (
-            <path
-              key={id}
-              d={sectorPath(sector.arc.inner, sector.arc.outer, scale)}
-              className={classes.join(' ')}
-              onClick={() => isReachable && onSelect(id)}
-            >
-              <title>
-                {sector.name}
-                {isHostile ? ' (hostile contact)' : ''}
-                {isAnomaly ? ` (${sector.anomaly!.kind} anomaly${isBarrier ? ' - one-way' : ''})` : ''}
-                {!isKnown ? ' (unscanned)' : ''}
-              </title>
-            </path>
+            <g key={id}>
+              <path
+                d={sectorPath(sector.arc.inner, sector.arc.outer, scale)}
+                className={classes.join(' ')}
+                onClick={() => isReachable && onSelect(id)}
+              >
+                <title>
+                  {sector.name}
+                  {isHostile ? ' (hostile contact)' : ''}
+                  {isAnomaly ? ` (${sector.anomaly!.kind} anomaly${isBarrier ? ' - one-way' : ''})` : ''}
+                  {isBase ? ' (starbase)' : ''}
+                  {!isKnown ? ' (unscanned)' : ''}
+                </title>
+              </path>
+              {isBase &&
+                (() => {
+                  const c = sectorCenter(sector.arc.inner, sector.arc.outer, scale)
+                  return (
+                    <g className="sector-marker sector-marker--base" transform={`translate(${c.x} ${c.y})`}>
+                      <circle r={7} />
+                      <path d="M 0 -4 L 0 4 M -4 0 L 4 0" />
+                    </g>
+                  )
+                })()}
+            </g>
           )
         })}
       </svg>

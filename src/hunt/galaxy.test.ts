@@ -38,6 +38,40 @@ describe('createGalaxy', () => {
     }
   })
 
+  it('never seeds a starbase in the home sector, even at density 1', () => {
+    const galaxy = createGalaxy({ rng: () => 0, anomalyDensity: 0, hostileDensity: 0, starbaseDensity: 1 })
+    expect(galaxy.getNode(sectorId(0, 0))?.starbase).toBe(false)
+  })
+
+  it('never seeds a starbase in an anomaly sector, even at density 1', () => {
+    // cyclic [density-check, kind-pick]: 0.1 * 3 = 0.3 -> KINDS[0] = 'barrier'
+    let i = 0
+    const rng = () => [0, 0.1][i++ % 2]
+    const galaxy = createGalaxy({ rng, anomalyDensity: 1, hostileDensity: 0, starbaseDensity: 1 })
+    for (const [id, sector] of galaxy.nodes) {
+      if (id === sectorId(0, 0)) continue
+      expect(sector.anomaly?.kind).toBe('barrier')
+      expect(sector.starbase).toBe(false)
+    }
+  })
+
+  it('never seeds a starbase in a hostile sector, even at density 1', () => {
+    const galaxy = createGalaxy({ rng: () => 0, anomalyDensity: 0, hostileDensity: 1, starbaseDensity: 1 })
+    for (const [id, sector] of galaxy.nodes) {
+      if (id === sectorId(0, 0)) continue
+      expect(sector.hostile).toBe(true)
+      expect(sector.starbase).toBe(false)
+    }
+  })
+
+  it('seeds a starbase on every eligible sector at density 1', () => {
+    const galaxy = createGalaxy({ rng: () => 0, anomalyDensity: 0, hostileDensity: 0, starbaseDensity: 1 })
+    for (const [id, sector] of galaxy.nodes) {
+      if (id === sectorId(0, 0)) continue
+      expect(sector.starbase).toBe(true)
+    }
+  })
+
   it('home sector has up to 8 Moore neighbors in impulse space, minus the missing inward ring', () => {
     const galaxy = createGalaxy()
     const neighbors = galaxy.neighbors(sectorId(0, 0))

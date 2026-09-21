@@ -8,6 +8,7 @@ import { buildWarpEdges, type GalaxyEdgeData } from './warpNetwork'
 export interface SectorData extends Sector {
   hostile: boolean
   anomaly?: AnomalyPlacement
+  starbase: boolean
 }
 
 export type Galaxy = UndoGraph<SectorData, GalaxyEdgeData>
@@ -46,6 +47,8 @@ export interface CreateGalaxyOptions {
   hostileDensity?: number
   /** Fraction of non-home sectors seeded with a subspace anomaly, in [0, 1]. */
   anomalyDensity?: number
+  /** Fraction of eligible (non-home, non-hostile, non-anomaly) sectors seeded with a starbase, in [0, 1]. */
+  starbaseDensity?: number
   rng?: () => number
   homeSector?: { region: number; ring: number }
 }
@@ -54,6 +57,7 @@ export function createGalaxy(options: CreateGalaxyOptions = {}): Galaxy {
   const {
     hostileDensity = 0.12,
     anomalyDensity = 0.08,
+    starbaseDensity = 0.05,
     rng = Math.random,
     homeSector = { region: 0, ring: 0 },
   } = options
@@ -79,7 +83,11 @@ export function createGalaxy(options: CreateGalaxyOptions = {}): Galaxy {
     // to. A conduit sector can still have one - see moveTo's conduit
     // handling for why that's actually safe.
     const noHostile = anomaly?.kind === 'barrier' || anomaly?.kind === 'gate'
-    return [id, { ...s, hostile: !isHome && !noHostile && rng() < hostileDensity, anomaly }]
+    const hostile = !isHome && !noHostile && rng() < hostileDensity
+    // A starbase is a safe haven, not a hazard - never share a sector with
+    // an anomaly (of any kind) or a hostile.
+    const starbase = !isHome && !anomaly && !hostile && rng() < starbaseDensity
+    return [id, { ...s, hostile, anomaly, starbase }]
   })
 
   return new UndoGraph<SectorData, GalaxyEdgeData>(nodes, edges)

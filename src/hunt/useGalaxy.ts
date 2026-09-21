@@ -143,16 +143,25 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
       const landedSector = galaxy.getNode(landedAt)
       const nextWarpEnteredBarrier =
         landedSector?.anomaly?.kind === 'barrier' && state.warpEngaged ? landedAt : null
+      // Docking is automatic and unconditional, same as every other
+      // sector-entry effect (hostile, barrier, gate, conduit) - there's no
+      // reason to gate a no-cost, no-choice restoration behind a command.
+      const docked = Boolean(landedSector?.starbase)
 
       setState((s) => ({
         ...s,
         position: landedAt,
         stardate: s.stardate + stardateCost(s.warpEngaged),
-        energy: { ...s.energy, reserve: s.energy.reserve - cost },
+        energy: docked
+          ? { reserve: STARTING_ENERGY, shields: 0, phasers: 0 }
+          : { ...s.energy, reserve: s.energy.reserve - cost },
         visited: new Set(s.visited).add(target).add(landedAt),
         warpEnteredBarrier: nextWarpEnteredBarrier,
       }))
       appendLog(message)
+      if (docked) {
+        appendLog(`Docked at ${landedSector!.name} starbase - shields, phasers, and reserves fully restored.`)
+      }
       if (leavingWarpEnteredBarrier) {
         const departedName = galaxy.getNode(departedFrom)?.name ?? departedFrom
         appendLog(`${departedName} - the barrier anomaly has healed.`)

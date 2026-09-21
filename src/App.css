@@ -166,6 +166,27 @@
   stroke-width: 2.5;
 }
 
+/*
+ * A starbase is a glyph drawn over the sector, not a fill/stroke variant -
+ * bases can't share a sector with a hostile or an anomaly, so there's no
+ * combination to fight for the wedge's own styling. pointer-events: none
+ * keeps clicks passing through to the sector path underneath regardless
+ * of where exactly on the wedge the marker lands.
+ */
+.sector-marker {
+  pointer-events: none;
+}
+
+.sector-marker--base {
+  fill: none;
+  stroke: #4ade80;
+  stroke-width: 1.5;
+}
+
+.sector-marker--base circle {
+  fill: rgba(74, 222, 128, 0.25);
+}
+
 .readout {
   display: grid;
   grid-template-columns: auto 1fr;
