@@ -26,6 +26,15 @@ export interface HuntState {
   scanned: Set<NodeId>
   /** Sectors a subspace scan has checked for an anomaly (whether or not it found one). */
   scannedAnomalies: Set<NodeId>
+  /**
+   * The barrier sector the ship currently occupies, if it got in via warp -
+   * null otherwise. barrier() only strips edges from whichever edge set is
+   * currently live, so triggering it under warp only ever touches the warp
+   * network; the impulse layer underneath was never mutated and is still
+   * fully intact. Leaving re-asserts that intact layer, so it's tracked
+   * here purely to log the "it healed" moment on departure.
+   */
+  warpEnteredBarrier: NodeId | null
   log: string[]
 }
 
@@ -46,6 +55,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     visited: new Set([home]),
     scanned: new Set(),
     scannedAnomalies: new Set(),
+    warpEnteredBarrier: null,
     log: ['Sensors online. Awaiting orders.'],
   })
 
@@ -76,6 +86,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
       }
 
       const departedFrom = state.position
+      const leavingWarpEnteredBarrier = state.warpEnteredBarrier === departedFrom
       const sector = galaxy.getNode(target)
       const anomaly = sector?.anomaly
       const arrivedViaConduit = Boolean(edge.data?.viaConduit)
@@ -91,7 +102,10 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
       if (anomaly?.kind === 'barrier') {
         // Activates the instant you walk in: severs every route back into
         // it. You can still leave via any of its own outgoing edges - it
-        // blocks entry, not exit - you just won't be getting back in.
+        // blocks entry, not exit - you just won't be getting back in...
+        // unless this was under warp, in which case the strip only ever
+        // touched the warp network, not the impulse layer underneath (see
+        // HuntState.warpEnteredBarrier) - a quirk left in deliberately.
         barrier(galaxy, target)
         message = `${sector!.name} - the barrier collapses inward behind the ship. No route leads back in. (-${cost} energy)`
       } else if (anomaly?.kind === 'gate') {
@@ -126,20 +140,29 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
         message = `Moved to ${sector?.name ?? target}. (-${cost} energy)`
       }
 
+      const landedSector = galaxy.getNode(landedAt)
+      const nextWarpEnteredBarrier =
+        landedSector?.anomaly?.kind === 'barrier' && state.warpEngaged ? landedAt : null
+
       setState((s) => ({
         ...s,
         position: landedAt,
         stardate: s.stardate + stardateCost(s.warpEngaged),
         energy: { ...s.energy, reserve: s.energy.reserve - cost },
         visited: new Set(s.visited).add(target).add(landedAt),
+        warpEnteredBarrier: nextWarpEnteredBarrier,
       }))
       appendLog(message)
+      if (leavingWarpEnteredBarrier) {
+        const departedName = galaxy.getNode(departedFrom)?.name ?? departedFrom
+        appendLog(`${departedName} - the barrier anomaly has healed.`)
+      }
       if (sensedAnomalies(galaxy, landedAt).length > 0) {
         appendLog('Subspace variance detected nearby.')
       }
       return landedAt
     },
-    [galaxy, state.position, state.warpEngaged, state.energy.reserve, home, appendLog],
+    [galaxy, state.position, state.warpEngaged, state.energy.reserve, state.warpEnteredBarrier, home, appendLog],
   )
 
   const toggleWarp = useCallback(() => {
