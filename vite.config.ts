@@ -4,6 +4,10 @@ import { defineConfig } from 'vitest/config'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Served from https://dennisdunn.github.io/Nextrek/ on GitHub Pages, not
+  // the domain root - GITHUB_ACTIONS is set automatically by the deploy
+  // workflow, so local dev/preview still run at "/".
+  base: process.env.GITHUB_ACTIONS ? '/Nextrek/' : '/',
   plugins: [
     react(),
     VitePWA({
