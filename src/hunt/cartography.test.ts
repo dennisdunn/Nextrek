@@ -9,8 +9,8 @@ import {
 } from './cartography'
 
 describe('sectorsInRing', () => {
-  it('the innermost ring is a quarter of the baseline resolution', () => {
-    expect(sectorsInRing(0, 6)).toBe(REGION_NAMES.length / 4)
+  it('the innermost ring is half the baseline resolution', () => {
+    expect(sectorsInRing(0, 6)).toBe(REGION_NAMES.length / 2)
   })
 
   it('the outer half of the rings is double the baseline resolution', () => {
@@ -61,10 +61,19 @@ describe('createSectors', () => {
     }
   })
 
-  it('Ring I is coarsened to 4 quadrants, named after every fourth baseline region', () => {
+  it('Ring I is coarsened to 8 sectors, named after every other baseline region', () => {
     const ringI = sectors.filter((s) => s.ring === 0)
-    expect(ringI.length).toBe(4)
-    expect(ringI.map((s) => s.name)).toEqual(['Aldebaran I', 'Betelgeuse I', 'Pollux I', 'Sagittarius I'])
+    expect(ringI.length).toBe(8)
+    expect(ringI.map((s) => s.name)).toEqual([
+      'Aldebaran I',
+      'Antares I',
+      'Betelgeuse I',
+      'Capella I',
+      'Pollux I',
+      'Regulus I',
+      'Sagittarius I',
+      'Spica I',
+    ])
   })
 
   it('Ring IV is bisected to 32 sectors, each baseline region split into an a/b pair', () => {

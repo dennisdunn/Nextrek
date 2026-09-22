@@ -77,23 +77,14 @@ describe('createGalaxy', () => {
     }
   })
 
-  it('home sector has 8 Moore neighbors: 2 same-ring (Ring I is only 4-wide) plus 6 fanning out into the 16-wide Ring II', () => {
+  it('home sector has 6 Moore neighbors: 2 same-ring (Ring I is only 8-wide) plus 4 fanning out into the 16-wide Ring II', () => {
     const galaxy = createGalaxy()
     const neighbors = galaxy.neighbors(sectorId(0, 0))
-    // Ring I is coarsened to 4 sectors, so home's same-ring neighbors wrap
-    // mod 4; Ring II is still baseline (16), so home's quadrant fans out to
-    // the 4 sectors directly under it plus one across each of its two edges.
+    // Ring I is coarsened to 8 sectors, so home's same-ring neighbors wrap
+    // mod 8; Ring II is still baseline (16, k=2), so home's sector fans out
+    // to the 2 sectors directly under it plus one across each of its two edges.
     expect(neighbors.sort()).toEqual(
-      [
-        sectorId(1, 0),
-        sectorId(3, 0),
-        sectorId(15, 1),
-        sectorId(0, 1),
-        sectorId(1, 1),
-        sectorId(2, 1),
-        sectorId(3, 1),
-        sectorId(4, 1),
-      ].sort(),
+      [sectorId(1, 0), sectorId(7, 0), sectorId(15, 1), sectorId(0, 1), sectorId(1, 1), sectorId(2, 1)].sort(),
     )
   })
 })

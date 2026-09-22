@@ -29,8 +29,8 @@ export const RING_NAMES = ['I', 'II', 'III', 'IV', 'V', 'VI']
 /** The "normal" angular resolution - what a ring divides into unless it's the innermost or in the outer half. */
 export const BASE_SECTORS_PER_RING = REGION_NAMES.length
 
-/** Ring I is this much coarser than normal - a handful of big quadrants instead of slivers at the pole. */
-export const INNER_RING_DIVISOR = 4
+/** Ring I is this much coarser than normal - a handful of big sectors instead of slivers at the pole. */
+export const INNER_RING_DIVISOR = 2
 
 /** The outer half of the rings are this much finer than normal - there's plenty of area out there to spare. */
 export const OUTER_RING_MULTIPLIER = 2
@@ -67,11 +67,11 @@ export function sectorId(region: number, ring: number): NodeId {
 
 /**
  * A ring coarser than baseline spans several baseline regions per sector -
- * name it after the first one (e.g. Ring I's first quadrant, spanning what
- * would be Aldebaran/Altair/Antares/Arcturus at normal resolution, is just
- * "Aldebaran I"). A ring finer than baseline has several sectors sharing
- * one baseline region's name - suffixed a, b, c... ("Vega VI-a", "Vega
- * VI-b"). At baseline resolution it's just the plain name, unsuffixed.
+ * name it after the first one (e.g. Ring I's first sector, spanning what
+ * would be Aldebaran/Altair at normal resolution, is just "Aldebaran I").
+ * A ring finer than baseline has several sectors sharing one baseline
+ * region's name - suffixed a, b, c... ("Vega VI-a", "Vega VI-b"). At
+ * baseline resolution it's just the plain name, unsuffixed.
  */
 function sectorName(region: number, ring: number, sectorsThisRing: number): string {
   const ringName = RING_NAMES[ring]
