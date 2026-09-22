@@ -1,5 +1,6 @@
 import { polar2rect } from '../math/convert'
 import type { NodeId } from '../graph/UndoGraph'
+import { HUB_RADIUS } from './cartography'
 import type { Galaxy } from './galaxy'
 
 interface GalaxyMapProps {
@@ -106,6 +107,10 @@ export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, on
         role="img"
         aria-label="Galaxy sensor map"
       >
+        {/* The pole itself is never a sector - see cartography.ts's HUB_RADIUS - so this is purely decorative. */}
+        <circle cx={SIZE / 2} cy={SIZE / 2} r={HUB_RADIUS * scale} className="galactic-core">
+          <title>Galactic core - impassable</title>
+        </circle>
         {sectors.map(([id, sector]) => {
           const isHere = id === position
           const isKnown = known.has(id)

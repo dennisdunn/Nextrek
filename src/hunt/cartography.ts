@@ -26,6 +26,17 @@ export const REGION_NAMES = [
 
 export const RING_NAMES = ['I', 'II', 'III', 'IV', 'V', 'VI']
 
+/** Radial width of a single ring. */
+export const RING_WIDTH = 1
+
+/**
+ * A non-traversable gap at the very center - not a ring, not a sector,
+ * just empty space (drawn as a decorative "galactic core" circle in
+ * GalaxyMap.tsx) so Ring I gets a real inner edge instead of tapering to
+ * a point at the pole. A quarter of a ring's width.
+ */
+export const HUB_RADIUS = RING_WIDTH / 4
+
 /** The "normal" angular resolution - what a ring divides into unless it's the innermost or in the outer half. */
 export const BASE_SECTORS_PER_RING = REGION_NAMES.length
 
@@ -89,13 +100,16 @@ function sectorName(region: number, ring: number, sectorsThisRing: number): stri
 }
 
 /**
- * Divide the galaxy into equal-width rings (radii at integer multiples -
- * ring 0 spans r=[0,1], ring 1 spans [1,2], and so on) - a polar map shape
- * rather than a Cartesian grid. Equal-area rings (r = sqrt(ring /
- * ringCount)) look visually confusing: they shrink the inner rings to
- * slivers near the pole to keep every ring's area the same. Equal width
- * bands read like a dartboard instead. Each ring's own angular resolution
- * comes from sectorsInRing, not a single galaxy-wide constant.
+ * Divide the galaxy into equal-width rings beyond HUB_RADIUS (ring 0 spans
+ * r=[HUB_RADIUS, HUB_RADIUS+1], ring 1 spans [HUB_RADIUS+1, HUB_RADIUS+2],
+ * and so on) - a polar map shape rather than a Cartesian grid. Equal-area
+ * rings (r = sqrt(ring / ringCount)) look visually confusing: they shrink
+ * the inner rings to slivers near the pole to keep every ring's area the
+ * same. Equal width bands read like a dartboard instead - except right at
+ * the pole, where even an equal-width ring still tapers to a point, which
+ * is what HUB_RADIUS carves out as a non-sector gap instead. Each ring's
+ * own angular resolution comes from sectorsInRing, not a single
+ * galaxy-wide constant.
  */
 export function createSectors(): Sector[] {
   const totalRings = RING_NAMES.length
@@ -103,14 +117,16 @@ export function createSectors(): Sector[] {
   for (let ring = 0; ring < totalRings; ring++) {
     const count = sectorsInRing(ring, totalRings)
     const regionWidth = (2 * Math.PI) / count
+    const innerR = HUB_RADIUS + ring * RING_WIDTH
+    const outerR = innerR + RING_WIDTH
     for (let region = 0; region < count; region++) {
       sectors.push({
         name: sectorName(region, ring, count),
         region,
         ring,
         arc: {
-          inner: { r: ring, theta: region * regionWidth },
-          outer: { r: ring + 1, theta: (region + 1) * regionWidth },
+          inner: { r: innerR, theta: region * regionWidth },
+          outer: { r: outerR, theta: (region + 1) * regionWidth },
         },
       })
     }

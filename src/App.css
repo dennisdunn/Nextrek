@@ -117,6 +117,12 @@
   cursor: default;
 }
 
+.galactic-core {
+  fill: rgba(255, 255, 255, 0.03);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
 .sector--known {
   fill: rgba(111, 227, 255, 0.09);
 }

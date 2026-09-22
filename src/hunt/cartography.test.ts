@@ -3,6 +3,7 @@ import {
   createSectors,
   getSectorByName,
   getSectorContaining,
+  HUB_RADIUS,
   REGION_NAMES,
   RING_NAMES,
   sectorsInRing,
@@ -40,24 +41,24 @@ describe('createSectors', () => {
     expect(sectors.length).toBe(totalCount)
   })
 
-  it('innermost sector of the first region starts at the pole', () => {
+  it('innermost sector of the first region starts at the hub, not the pole', () => {
     const s = getSectorByName(sectors, 'Aldebaran I')
-    expect(s.arc.inner.r).toBeCloseTo(0)
+    expect(s.arc.inner.r).toBeCloseTo(HUB_RADIUS)
     expect(s.arc.inner.theta).toBeCloseTo(0)
   })
 
   it('outermost sector of the last region reaches the rim at 2*PI', () => {
     // Ring VI is in the finer (32-way) outer half, so Vega's slice there is split a/b
     const s = getSectorByName(sectors, 'Vega VI-b')
-    expect(s.arc.outer.r).toBeCloseTo(RING_NAMES.length)
+    expect(s.arc.outer.r).toBeCloseTo(RING_NAMES.length + HUB_RADIUS)
     expect(s.arc.outer.theta).toBeCloseTo(2 * Math.PI)
   })
 
-  it('ring boundaries fall at integer radii, one unit wide each', () => {
+  it('ring boundaries are one unit wide each, offset from the pole by the hub radius', () => {
     for (let ring = 0; ring < RING_NAMES.length; ring++) {
       const s = sectors.find((sector) => sector.ring === ring && sector.region === 0)!
-      expect(s.arc.inner.r).toBe(ring)
-      expect(s.arc.outer.r).toBe(ring + 1)
+      expect(s.arc.inner.r).toBeCloseTo(HUB_RADIUS + ring)
+      expect(s.arc.outer.r).toBeCloseTo(HUB_RADIUS + ring + 1)
     }
   })
 
@@ -106,8 +107,13 @@ describe('getSectorByName', () => {
 describe('getSectorContaining', () => {
   const sectors = createSectors()
 
-  it('finds the sector containing the pole', () => {
-    expect(getSectorContaining(sectors, { r: 0, theta: 0 }).name).toBe('Aldebaran I')
+  it('the pole itself is inside the hub gap - no sector contains it', () => {
+    expect(() => getSectorContaining(sectors, { r: 0, theta: 0 })).toThrow()
+    expect(() => getSectorContaining(sectors, { r: HUB_RADIUS - 0.01, theta: 0 })).toThrow()
+  })
+
+  it('finds the innermost real sector just past the hub gap', () => {
+    expect(getSectorContaining(sectors, { r: HUB_RADIUS + 0.01, theta: 0 }).name).toBe('Aldebaran I')
   })
 
   it('finds a sector near the outer rim', () => {
