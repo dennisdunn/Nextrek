@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { REGION_NAMES, RING_NAMES, sectorId } from './cartography'
+import { RING_NAMES, sectorId, sectorsInRing } from './cartography'
 import { createGalaxy, disengageWarp, engageWarp, WARP_RADIUS } from './galaxy'
+
+const TOTAL_SECTORS = Array.from({ length: RING_NAMES.length }, (_, ring) => sectorsInRing(ring, RING_NAMES.length)).reduce(
+  (a, b) => a + b,
+  0,
+)
 
 describe('createGalaxy', () => {
   it('seeds every sector in the galaxy', () => {
     const galaxy = createGalaxy({ rng: () => 0 })
-    expect(galaxy.nodes.size).toBe(REGION_NAMES.length * RING_NAMES.length)
+    expect(galaxy.nodes.size).toBe(TOTAL_SECTORS)
   })
 
   it('never seeds a hostile in the home sector', () => {
@@ -72,13 +77,23 @@ describe('createGalaxy', () => {
     }
   })
 
-  it('home sector has up to 8 Moore neighbors in impulse space, minus the missing inward ring', () => {
+  it('home sector has 8 Moore neighbors: 2 same-ring (Ring I is only 4-wide) plus 6 fanning out into the 16-wide Ring II', () => {
     const galaxy = createGalaxy()
     const neighbors = galaxy.neighbors(sectorId(0, 0))
-    // wraps around the region axis (15) and steps out one ring (0,1);
-    // diagonals included; no inward wrap since ring -1 doesn't exist
+    // Ring I is coarsened to 4 sectors, so home's same-ring neighbors wrap
+    // mod 4; Ring II is still baseline (16), so home's quadrant fans out to
+    // the 4 sectors directly under it plus one across each of its two edges.
     expect(neighbors.sort()).toEqual(
-      [sectorId(1, 0), sectorId(15, 0), sectorId(0, 1), sectorId(1, 1), sectorId(15, 1)].sort(),
+      [
+        sectorId(1, 0),
+        sectorId(3, 0),
+        sectorId(15, 1),
+        sectorId(0, 1),
+        sectorId(1, 1),
+        sectorId(2, 1),
+        sectorId(3, 1),
+        sectorId(4, 1),
+      ].sort(),
     )
   })
 })
@@ -94,7 +109,9 @@ describe('warp drive', () => {
 
   it('reaches a sector WARP_RADIUS hops away that impulse cannot reach directly', () => {
     const galaxy = createGalaxy()
-    const farTarget = sectorId(WARP_RADIUS, 0)
+    // WARP_RADIUS rings straight out - reachable in exactly that many
+    // impulse hops (one ring per hop), never in one.
+    const farTarget = sectorId(0, WARP_RADIUS)
     expect(galaxy.neighbors(sectorId(0, 0))).not.toContain(farTarget)
     engageWarp(galaxy)
     expect(galaxy.neighbors(sectorId(0, 0))).toContain(farTarget)

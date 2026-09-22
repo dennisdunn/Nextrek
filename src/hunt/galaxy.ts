@@ -1,8 +1,8 @@
 import type { Edge, NodeId } from '../graph/UndoGraph'
 import { UndoGraph } from '../graph/UndoGraph'
-import { buildGridEdges } from '../graph/gridTopology'
+import { buildPolarGridEdges } from '../graph/polarTopology'
 import { applyAnomalyPlacements, pickAnomalyPlacements, type AnomalyPlacement } from './anomalySeeding'
-import { createSectors, REGION_NAMES, RING_NAMES, sectorId, type Sector } from './cartography'
+import { createSectors, RING_NAMES, sectorId, sectorsInRing, type Sector } from './cartography'
 import { buildWarpEdges, type GalaxyEdgeData } from './warpNetwork'
 
 export interface SectorData extends Sector {
@@ -13,19 +13,21 @@ export interface SectorData extends Sector {
 
 export type Galaxy = UndoGraph<SectorData, GalaxyEdgeData>
 
-const width = REGION_NAMES.length
-const height = RING_NAMES.length
-
 /** How far (in impulse hops) a single warp jump can reach. */
 export const WARP_RADIUS = 3
 
 /**
- * Impulse space: the region axis (angular) wraps around the galaxy, the
- * ring axis (radial - center to rim) does not. Moore neighborhood - up to
- * 8 adjacent sectors (orthogonal + diagonal) - one hop at a time.
+ * Impulse space: angularly wraps around the galaxy (it's a full circle),
+ * never radially (there's no ring before the innermost or after the
+ * outermost). Moore neighborhood - up to 8 adjacent sectors - one hop at a
+ * time, generalized in polarTopology.ts to handle rings whose angular
+ * resolution differs from their neighbors (see cartography.ts's
+ * sectorsInRing).
  */
 export function normalSpaceEdges() {
-  return buildGridEdges({ width, height, wrapX: true, wrapY: false, neighborhood: 'moore' })
+  const totalRings = RING_NAMES.length
+  const sectorsPerRing = Array.from({ length: totalRings }, (_, ring) => sectorsInRing(ring, totalRings))
+  return buildPolarGridEdges(sectorsPerRing)
 }
 
 /**
