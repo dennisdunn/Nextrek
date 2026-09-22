@@ -47,7 +47,7 @@ export function EngineeringPanel({ energy, warpEngaged, onToggleWarp, onAllocate
         />
       </label>
 
-      <button type="button" onClick={onToggleWarp}>
+      <button type="button" className="warp-toggle" onClick={onToggleWarp}>
         {warpEngaged ? 'Disengage warp' : 'Engage warp'}
       </button>
     </Panel>

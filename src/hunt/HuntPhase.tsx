@@ -3,7 +3,6 @@ import { CommsPanel } from './panels/CommsPanel'
 import { EngineeringPanel } from './panels/EngineeringPanel'
 import { SciencesPanel } from './panels/SciencesPanel'
 import { StatusPanel } from './panels/StatusPanel'
-import { longRangeScanCost, subspaceScanCost } from './ship'
 import type { useGalaxy } from './useGalaxy'
 
 export interface HuntPhaseProps {
@@ -43,8 +42,6 @@ export function HuntPhase({ controller, onMove }: HuntPhaseProps) {
         known={known}
         anomalyKnown={anomalyKnown}
         onSelect={onMove}
-        lrsCost={longRangeScanCost(state.warpEngaged)}
-        subspaceCost={subspaceScanCost(state.warpEngaged)}
         onLongRangeScan={longRangeScan}
         onSubspaceScan={subspaceScan}
       />

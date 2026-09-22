@@ -10,8 +10,6 @@ export interface SciencesPanelProps {
   known: ReadonlySet<NodeId>
   anomalyKnown: ReadonlySet<NodeId>
   onSelect: (id: NodeId) => void
-  lrsCost: number
-  subspaceCost: number
   onLongRangeScan: () => void
   onSubspaceScan: () => void
 }
@@ -23,8 +21,6 @@ export function SciencesPanel({
   known,
   anomalyKnown,
   onSelect,
-  lrsCost,
-  subspaceCost,
   onLongRangeScan,
   onSubspaceScan,
 }: SciencesPanelProps) {
@@ -40,10 +36,10 @@ export function SciencesPanel({
       />
       <div className="scan-controls">
         <button type="button" onClick={onLongRangeScan}>
-          Long-range scan ({lrsCost})
+          Long-range scan
         </button>
         <button type="button" onClick={onSubspaceScan}>
-          Subspace scan ({subspaceCost})
+          Subspace scan
         </button>
       </div>
     </Panel>

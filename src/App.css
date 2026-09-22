@@ -325,9 +325,15 @@
 
 .scan-controls {
   display: flex;
+  justify-content: center;
   gap: 8px;
   flex-wrap: wrap;
   margin-top: 12px;
+}
+
+.warp-toggle {
+  display: block;
+  margin: 12px auto 0;
 }
 
 .log {
