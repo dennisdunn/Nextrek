@@ -42,13 +42,15 @@ function sectorCenter(inner: { r: number; theta: number }, outer: { r: number; t
   return toScreen((inner.r + outer.r) / 2, (inner.theta + outer.theta) / 2, scale)
 }
 
-type MarkerKind = 'base' | 'barrier' | 'gate' | 'conduit'
+type MarkerKind = 'base' | 'gate' | 'conduit'
 
 /**
  * Each kind gets its own shape rather than its own color - anomaly markers
  * all stay in the same magenta family as the anomaly wedge itself (color
  * says "anomaly", shape says which one); a starbase is the only marker
- * that isn't a hazard, so it's the one that gets a different hue.
+ * that isn't a hazard, so it's the one that gets a different hue. Barrier
+ * has no glyph of its own - the "- one-way" tooltip is the only additional
+ * hint it gets.
  */
 function markerGlyph(kind: MarkerKind) {
   switch (kind) {
@@ -58,14 +60,6 @@ function markerGlyph(kind: MarkerKind) {
         <>
           <circle r={7} />
           <path d="M 0 -4 L 0 4 M -4 0 L 4 0" />
-        </>
-      )
-    case 'barrier':
-      // circle + slash: the universal "no entry" glyph
-      return (
-        <>
-          <circle r={7} />
-          <path d="M -5 -5 L 5 5" />
         </>
       )
     case 'gate':
@@ -121,15 +115,7 @@ export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, on
           const isGate = isAnomaly && sector.anomaly?.kind === 'gate'
           const isConduit = isAnomaly && sector.anomaly?.kind === 'conduit'
           const isBase = isKnown && sector.starbase
-          const markerKind: MarkerKind | null = isBase
-            ? 'base'
-            : isBarrier
-              ? 'barrier'
-              : isGate
-                ? 'gate'
-                : isConduit
-                  ? 'conduit'
-                  : null
+          const markerKind: MarkerKind | null = isBase ? 'base' : isGate ? 'gate' : isConduit ? 'conduit' : null
           const isReachable = neighbors.includes(id)
           const classes = ['sector']
           if (isHere) classes.push('sector--here')

@@ -188,16 +188,9 @@
 }
 
 /*
- * The three anomaly markers all share the wedge's own magenta - color says
- * "anomaly", shape says which kind, so they read as a family at a glance
- * rather than three unrelated hazards.
+ * Gate and conduit share the wedge's own magenta - color says "anomaly",
+ * shape says which kind. Barrier has no glyph of its own.
  */
-.sector-marker--barrier {
-  fill: rgba(232, 121, 249, 0.2);
-  stroke: #e879f9;
-  stroke-width: 1.5;
-}
-
 .sector-marker--gate {
   fill: none;
   stroke: #e879f9;
