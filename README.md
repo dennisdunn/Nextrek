@@ -63,3 +63,7 @@ Every gameplay-balance constant — energy costs, mission length, galaxy seeding
 - `src/game/` — the phase-transition layer connecting hunt and kill (`GameShell.tsx`), plus the end screen
 - `src/balance.ts` — every tunable gameplay constant, in one place
 - `src/graph/`, `src/math/` — shared, domain-agnostic data structures and math helpers
+
+## License
+
+[MIT](LICENSE)
