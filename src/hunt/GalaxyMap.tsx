@@ -138,7 +138,11 @@ export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, on
               >
                 <title>
                   {sector.name}
-                  {isHostile ? ' (hostile contact)' : ''}
+                  {isHostile
+                    ? sector.hostileHealth !== undefined
+                      ? ` (hostile contact - wounded, ${Math.round(sector.hostileHealth)} hull)`
+                      : ' (hostile contact)'
+                    : ''}
                   {isAnomaly ? ` (${sector.anomaly!.kind} anomaly${isBarrier ? ' - one-way' : ''})` : ''}
                   {isBase ? ' (starbase)' : ''}
                   {!isKnown ? ' (unscanned)' : ''}

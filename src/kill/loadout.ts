@@ -23,6 +23,9 @@ export const BASE_WEAPON_DAMAGE = 10
 export const PHASER_DAMAGE_PER_LEVEL = 0.3
 export const PHASER_COST_PER_SHOT = 5
 
+/** Default hull health for a hostile that's never been engaged before (see galaxy.ts's SectorData.hostileHealth). */
+export const HOSTILE_HULL_HEALTH = 40
+
 export function loadoutFromEnergy(shieldLevel: number, phaserLevel: number): ShipLoadout {
   const shields = Math.max(0, shieldLevel)
   const phasers = Math.max(0, phaserLevel)

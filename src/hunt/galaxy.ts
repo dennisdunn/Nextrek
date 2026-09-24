@@ -7,8 +7,28 @@ import { buildWarpEdges, type GalaxyEdgeData } from './warpNetwork'
 
 export interface SectorData extends Sector {
   hostile: boolean
+  /**
+   * Remaining hull health left over from an earlier, unfinished encounter
+   * (a flee or a defeat) - undefined means "never engaged," so the kill
+   * phase spawns it at its own default instead of resetting a wounded
+   * hostile back to full health.
+   */
+  hostileHealth?: number
   anomaly?: AnomalyPlacement
   starbase: boolean
+}
+
+/**
+ * Fold a kill-phase encounter's outcome back into the sector it happened
+ * in. A hostile out of health is gone for good; otherwise its remaining
+ * health carries over, so leaving a fight unfinished (by fleeing or losing)
+ * doesn't quietly reset it back to full.
+ */
+export function applyCombatResult(sector: SectorData, hostileHealthRemaining: number): SectorData {
+  if (hostileHealthRemaining <= 0) {
+    return { ...sector, hostile: false, hostileHealth: undefined }
+  }
+  return { ...sector, hostileHealth: hostileHealthRemaining }
 }
 
 export type Galaxy = UndoGraph<SectorData, GalaxyEdgeData>

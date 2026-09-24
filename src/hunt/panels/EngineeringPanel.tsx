@@ -5,11 +5,13 @@ import { Panel } from './Panel'
 export interface EngineeringPanelProps {
   energy: EnergyPools
   warpEngaged: boolean
+  /** True during an active encounter - warp can't be used to break off a fight. */
+  warpLocked: boolean
   onToggleWarp: () => void
   onAllocate: (subsystem: Subsystem, level: number) => void
 }
 
-export function EngineeringPanel({ energy, warpEngaged, onToggleWarp, onAllocate }: EngineeringPanelProps) {
+export function EngineeringPanel({ energy, warpEngaged, warpLocked, onToggleWarp, onAllocate }: EngineeringPanelProps) {
   const reservePct = Math.max(0, Math.min(100, (energy.reserve / STARTING_ENERGY) * 100))
 
   return (
@@ -47,7 +49,13 @@ export function EngineeringPanel({ energy, warpEngaged, onToggleWarp, onAllocate
         />
       </label>
 
-      <button type="button" className="warp-toggle" onClick={onToggleWarp}>
+      <button
+        type="button"
+        className="warp-toggle"
+        onClick={onToggleWarp}
+        disabled={warpLocked}
+        title={warpLocked ? 'Warp offline during red alert' : undefined}
+      >
         {warpEngaged ? 'Disengage warp' : 'Engage warp'}
       </button>
     </Panel>

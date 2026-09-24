@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { RING_NAMES, sectorId, sectorsInRing } from './cartography'
-import { createGalaxy, disengageWarp, engageWarp, WARP_RADIUS } from './galaxy'
+import { applyCombatResult, createGalaxy, disengageWarp, engageWarp, WARP_RADIUS, type SectorData } from './galaxy'
 
 const TOTAL_SECTORS = Array.from({ length: RING_NAMES.length }, (_, ring) => sectorsInRing(ring, RING_NAMES.length)).reduce(
   (a, b) => a + b,
@@ -128,5 +128,38 @@ describe('warp drive', () => {
   it('disengaging with no warp engaged is a no-op', () => {
     const galaxy = createGalaxy()
     expect(disengageWarp(galaxy)).toBe(false)
+  })
+})
+
+describe('applyCombatResult', () => {
+  const woundedHostile: SectorData = {
+    name: 'Test I',
+    region: 0,
+    ring: 0,
+    arc: { inner: { r: 0, theta: 0 }, outer: { r: 1, theta: 1 } },
+    hostile: true,
+    starbase: false,
+  }
+
+  it('clears the hostile once its health reaches zero', () => {
+    const next = applyCombatResult(woundedHostile, 0)
+    expect(next.hostile).toBe(false)
+    expect(next.hostileHealth).toBeUndefined()
+  })
+
+  it('clears the hostile if health somehow drops below zero', () => {
+    const next = applyCombatResult(woundedHostile, -5)
+    expect(next.hostile).toBe(false)
+  })
+
+  it('persists a surviving hostile\'s remaining health instead of resetting it', () => {
+    const next = applyCombatResult(woundedHostile, 12)
+    expect(next.hostile).toBe(true)
+    expect(next.hostileHealth).toBe(12)
+  })
+
+  it('does not mutate the sector passed in', () => {
+    applyCombatResult(woundedHostile, 12)
+    expect(woundedHostile.hostileHealth).toBeUndefined()
   })
 })

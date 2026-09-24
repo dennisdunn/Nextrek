@@ -1,4 +1,5 @@
 import { addComponent, addEntity } from 'bitecs'
+import { HOSTILE_HULL_HEALTH } from './loadout'
 import type { KillWorld } from './world'
 
 export interface SpawnShipOptions {
@@ -66,7 +67,7 @@ export function spawnHostile(world: KillWorld, opts: SpawnShipOptions): number {
   Velocity.x[eid] = vx
   Velocity.y[eid] = vy
   Radius[eid] = opts.radius ?? 16
-  Health[eid] = opts.health ?? 40
+  Health[eid] = opts.health ?? HOSTILE_HULL_HEALTH
   Hostile[eid] = 1
   // staggered so a pack of hostiles doesn't volley in perfect sync
   FireCooldown[eid] = Math.random() * 1000

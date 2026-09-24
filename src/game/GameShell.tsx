@@ -1,24 +1,42 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import type { NodeId } from '../graph/UndoGraph'
-import { HuntPhase } from '../hunt/HuntPhase'
+import { applyCombatResult } from '../hunt/galaxy'
+import { HuntPhase, type BridgeTab, type Encounter } from '../hunt/HuntPhase'
 import { useGalaxy } from '../hunt/useGalaxy'
-import { KillPhase, type CombatResult } from '../kill/KillPhase'
-
-interface CombatEncounter {
-  sectorId: NodeId
-  sectorName: string
-}
+import type { CombatResult, LiveCombatState } from '../kill/KillPhase'
+import { HOSTILE_HULL_HEALTH } from '../kill/loadout'
 
 /**
- * Phase-transition layer. Owns the galaxy (React/UndoGraph, strategic)
- * and decides when a hunt-phase move hands off to the kill phase
- * (bitECS/canvas, tactical), then folds the outcome back into the galaxy
- * and returns control to the hunt phase.
+ * Phase-transition layer. Owns the galaxy (React/UndoGraph, strategic) and
+ * the current encounter, if any, and decides when a hunt-phase move starts
+ * or ends one, folding the outcome back into the galaxy either way.
+ *
+ * Unlike the old full-screen takeover, the hunt phase itself never
+ * unmounts - Tactical is an embedded, toggle-able station inside it (see
+ * HuntPhase.tsx) so Status/Engineering/Comms stay live and usable through
+ * a fight.
  */
 export function GameShell() {
   const controller = useGalaxy()
   const { galaxy, moveTo, refundEnergy } = controller
-  const [encounter, setEncounter] = useState<CombatEncounter | null>(null)
+  const [encounter, setEncounter] = useState<Encounter | null>(null)
+  const [activeTab, setActiveTab] = useState<BridgeTab>('sciences')
+  // Updated every tick by KillPhase, out-of-band from React state - a fight
+  // resolves 60 times a second and none of that needs to trigger a
+  // re-render; it only has to be readable at the moment an encounter ends.
+  const liveCombatRef = useRef<LiveCombatState | null>(null)
+
+  const disengage = useCallback(
+    (sectorId: NodeId, hostileHealthRemaining: number, leftoverShieldEnergy: number, leftoverPhaserEnergy: number) => {
+      const sector = galaxy.getNode(sectorId)
+      if (sector) galaxy.setNode(sectorId, applyCombatResult(sector, hostileHealthRemaining))
+      refundEnergy(leftoverShieldEnergy, leftoverPhaserEnergy)
+      liveCombatRef.current = null
+      setEncounter(null)
+      setActiveTab('sciences')
+    },
+    [galaxy, refundEnergy],
+  )
 
   const handleMove = useCallback(
     (target: NodeId) => {
@@ -28,40 +46,51 @@ export function GameShell() {
       // clicked (a gate/conduit sector is itself always hostile-free).
       const landedAt = moveTo(target)
       if (!landedAt) return
+
+      // Moving at all while an encounter is active *is* fleeing it - there's
+      // no separate flee button. Whatever the fight's current state is
+      // (read from the last tick KillPhase reported) is what persists.
+      if (encounter) {
+        const live = liveCombatRef.current
+        disengage(
+          encounter.sectorId,
+          live?.hostileHealth ?? encounter.hostileHealth,
+          live?.shieldEnergy ?? 0,
+          live?.phaserEnergy ?? 0,
+        )
+      }
+
       const sector = galaxy.getNode(landedAt)
       if (sector?.hostile) {
-        setEncounter({ sectorId: landedAt, sectorName: sector.name })
+        liveCombatRef.current = null
+        setEncounter({ sectorId: landedAt, sectorName: sector.name, hostileHealth: sector.hostileHealth ?? HOSTILE_HULL_HEALTH })
+        setActiveTab('tactical')
       }
     },
-    [moveTo, galaxy],
+    [moveTo, galaxy, encounter, disengage],
   )
 
   const handleResolved = useCallback(
     (result: CombatResult) => {
-      setEncounter((current) => {
-        if (current && result.outcome === 'victory') {
-          const sector = galaxy.getNode(current.sectorId)
-          if (sector) galaxy.setNode(current.sectorId, { ...sector, hostile: false })
-        }
-        return null
-      })
-      // Whatever shield/phaser energy survived the fight goes back to the
-      // reserve (at a lossy exchange rate) now that combat is over.
-      refundEnergy(result.leftoverShieldEnergy, result.leftoverPhaserEnergy)
+      if (!encounter) return
+      disengage(encounter.sectorId, result.hostileHealthRemaining, result.leftoverShieldEnergy, result.leftoverPhaserEnergy)
     },
-    [galaxy, refundEnergy],
+    [encounter, disengage],
   )
 
-  if (encounter) {
-    return (
-      <KillPhase
-        sectorName={encounter.sectorName}
-        shieldLevel={controller.state.energy.shields}
-        phaserLevel={controller.state.energy.phasers}
-        onResolved={handleResolved}
-      />
-    )
-  }
+  const handleLiveCombatUpdate = useCallback((state: LiveCombatState) => {
+    liveCombatRef.current = state
+  }, [])
 
-  return <HuntPhase controller={controller} onMove={handleMove} />
+  return (
+    <HuntPhase
+      controller={controller}
+      onMove={handleMove}
+      encounter={encounter}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      onCombatResolved={handleResolved}
+      onLiveCombatUpdate={handleLiveCombatUpdate}
+    />
+  )
 }

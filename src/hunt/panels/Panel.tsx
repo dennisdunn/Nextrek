@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-export type PanelAccent = 'status' | 'comms' | 'engineering' | 'sciences'
+export type PanelAccent = 'status' | 'comms' | 'engineering' | 'sciences' | 'tactical'
 
 export interface PanelProps {
   title: string
