@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { barrier } from '../graph/anomalies'
 import type { NodeId } from '../graph/UndoGraph'
 import { pickGateDestination } from './anomalyEffects'
@@ -94,6 +94,13 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     (message: string) => setState((s) => ({ ...s, log: [...s.log.slice(-19), message] })),
     [],
   )
+  // Lets resolveEncounter read the latest state without closing over it
+  // directly, which would force it to change identity (via useCallback's
+  // deps) on every energy tweak - and KillPhase rebuilds its whole bitECS
+  // world, respawning hostiles at new random positions, whenever the
+  // onResolved prop it was handed changes identity mid-fight.
+  const stateRef = useRef(state)
+  stateRef.current = state
 
   const currentSector = galaxy.getNode(state.position)
   const neighbors = galaxy.neighbors(state.position)
@@ -289,8 +296,9 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
       torpedoesRemaining: number,
       hostilesKilled: number,
     ) => {
-      const { subsystems, damagedSystem } = applySubsystemWear(state.subsystems, hullDamageTaken)
-      const refunded = refund(leftoverShieldEnergy, leftoverPhaserEnergy, state.energy)
+      const current = stateRef.current
+      const { subsystems, damagedSystem } = applySubsystemWear(current.subsystems, hullDamageTaken)
+      const refunded = refund(leftoverShieldEnergy, leftoverPhaserEnergy, current.energy)
       // A shield generator or phaser array just damaged this same encounter
       // can drop below whatever the refund left allocated to it - re-clamp
       // both pools to their (possibly reduced) caps.
@@ -302,6 +310,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
         Math.min(refunded.phasers, phaserCap),
         phaserCap,
       )
+      const hostilesDestroyed = current.hostilesDestroyed + hostilesKilled
       setState((s) => ({
         ...s,
         subsystems,
@@ -318,7 +327,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
       )
       if (hostilesKilled > 0) {
         appendLog(
-          `${hostilesKilled} hostile${hostilesKilled === 1 ? '' : 's'} destroyed - ${state.hostilesDestroyed + hostilesKilled}/${HOSTILE_QUOTA} toward mission quota.`,
+          `${hostilesKilled} hostile${hostilesKilled === 1 ? '' : 's'} destroyed - ${hostilesDestroyed}/${HOSTILE_QUOTA} toward mission quota.`,
         )
       }
       if (damagedSystem) {
@@ -327,7 +336,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
         )
       }
     },
-    [state.subsystems, state.energy, state.hostilesDestroyed, appendLog],
+    [appendLog],
   )
 
   const longRangeScan = useCallback(() => {
