@@ -4,12 +4,21 @@ import type { NodeId } from '../graph/UndoGraph'
 import { pickGateDestination } from './anomalyEffects'
 import { sectorId } from './cartography'
 import { createGalaxy, disengageWarp, engageWarp, impulseNeighbors, type CreateGalaxyOptions } from './galaxy'
-import { HOSTILE_QUOTA, missionStatus, stardateCost, STARTING_STARDATE, tacticalAlert } from './mission'
+import {
+  HOSTILE_QUOTA,
+  isStranded,
+  missionStatus,
+  stardateCost,
+  STARTING_STARDATE,
+  tacticalAlert,
+  type DefeatReason,
+} from './mission'
 import { knownSectors, sensedAnomalies, sensedHostiles } from './sensors'
 import {
   canAfford,
   longRangeScanCost,
   moveCost,
+  MOVE_COST_NORMAL,
   STARTING_ENERGY,
   STARTING_TORPEDOES,
   subspaceScanCost,
@@ -95,7 +104,18 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
   const anomalyKnown = new Set([...state.scannedAnomalies, ...state.visited])
   const sensedDanger = sensedHostiles(galaxy, state.position)
   const alert = tacticalAlert(Boolean(currentSector?.hostile), sensedDanger.length)
-  const status = missionStatus(state.hostilesDestroyed, state.stardate)
+
+  const timeQuotaStatus = missionStatus(state.hostilesDestroyed, state.stardate)
+  // Shield/phaser energy is reclaimable back to reserve outside combat (see
+  // subsystems.ts's allocate), so it's the combined total - not reserve
+  // alone - that has to run dry to truly be unrecoverable. The cheapest
+  // move is always a no-cost warp disengage followed by an impulse hop.
+  const totalEnergy = state.energy.reserve + state.energy.shields + state.energy.phasers
+  const cheapestMoveCost = MOVE_COST_NORMAL * degradedCostMultiplier(state.subsystems.impulseEngines)
+  const stranded = isStranded(totalEnergy, cheapestMoveCost)
+  const status = timeQuotaStatus !== 'active' ? timeQuotaStatus : stranded ? 'defeat' : 'active'
+  const defeatReason: DefeatReason | null =
+    status !== 'defeat' ? null : timeQuotaStatus === 'defeat' ? 'timeout' : 'stranded'
 
   const moveTo = useCallback(
     (target: NodeId): NodeId | false => {
@@ -356,6 +376,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     sensedDanger,
     alert,
     status,
+    defeatReason,
     moveTo,
     toggleWarp,
     allocateEnergy,

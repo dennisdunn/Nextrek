@@ -48,3 +48,18 @@ export function missionStatus(hostilesDestroyed: number, stardate: number): Miss
 export function stardateRemaining(stardate: number): number {
   return Math.max(0, MISSION_DEADLINE - stardate)
 }
+
+/** Which of the two ways a defeat happened - drives which message the end screen shows. */
+export type DefeatReason = 'timeout' | 'stranded'
+
+/**
+ * True once no combination of reserve, shields, and phasers can cover even
+ * the cheapest possible move - shields/phasers energy is reclaimable back
+ * to reserve at full value outside combat (see subsystems.ts's allocate),
+ * so it's the *combined* total that has to run dry, not reserve alone.
+ * Unrecoverable: moving is the only thing that can ever change the
+ * situation, and moving is exactly what this rules out.
+ */
+export function isStranded(totalEnergy: number, cheapestMoveCost: number): boolean {
+  return totalEnergy < cheapestMoveCost
+}

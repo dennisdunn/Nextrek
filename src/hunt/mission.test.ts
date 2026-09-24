@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   HOSTILE_QUOTA,
+  isStranded,
   MISSION_DEADLINE,
   missionStatus,
   stardateCost,
@@ -66,5 +67,17 @@ describe('stardateRemaining', () => {
 
   it('never goes negative past the deadline', () => {
     expect(stardateRemaining(MISSION_DEADLINE + 10)).toBe(0)
+  })
+})
+
+describe('isStranded', () => {
+  it('is false when total energy covers the cheapest move', () => {
+    expect(isStranded(10, 10)).toBe(false)
+    expect(isStranded(100, 10)).toBe(false)
+  })
+
+  it('is true when total energy falls short of the cheapest move', () => {
+    expect(isStranded(9, 10)).toBe(true)
+    expect(isStranded(0, 10)).toBe(true)
   })
 })

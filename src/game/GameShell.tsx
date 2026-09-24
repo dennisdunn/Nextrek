@@ -25,7 +25,7 @@ export interface GameShellProps {
  */
 export function GameShell({ onNewGame }: GameShellProps) {
   const controller = useGalaxy()
-  const { galaxy, state, status, moveTo, resolveEncounter } = controller
+  const { galaxy, state, status, defeatReason, moveTo, resolveEncounter } = controller
   const [encounter, setEncounter] = useState<Encounter | null>(null)
   const [activeTab, setActiveTab] = useState<BridgeTab>('sciences')
   // Updated every tick by KillPhase, out-of-band from React state - a fight
@@ -118,10 +118,18 @@ export function GameShell({ onNewGame }: GameShellProps) {
     liveCombatRef.current = state
   }, [])
 
-  if (status !== 'active') {
+  // A "stranded" defeat is read off pre-fight energy, which an active
+  // encounter hasn't touched yet (that only lands back in HuntState when
+  // it resolves) - deferred while `encounter` is truthy so it never yanks
+  // the fight away mid-combat over a stale reading. Timeout/victory can't
+  // actually arise mid-fight (stardate and kill count are both frozen
+  // until an encounter ends), so this only ever holds back "stranded".
+  const missionOver = status === 'victory' || (status === 'defeat' && (defeatReason === 'timeout' || !encounter))
+  if (missionOver) {
     return (
       <EndScreen
-        status={status}
+        status={status === 'victory' ? 'victory' : 'defeat'}
+        defeatReason={defeatReason}
         hostilesDestroyed={state.hostilesDestroyed}
         stardate={state.stardate}
         onNewGame={onNewGame}
