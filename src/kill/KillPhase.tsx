@@ -1,5 +1,6 @@
 import { entityExists } from 'bitecs'
 import { useEffect, useRef } from 'react'
+import { PLAYER_FIRE_COOLDOWN_MS, STAR_DISTANCE_FROM_CENTER } from '../balance'
 import { bindInput, createInputState, inputSystem } from './input'
 import {
   BASE_HULL_HEALTH,
@@ -70,11 +71,7 @@ export interface KillPhaseProps {
 
 const WIDTH = 640
 const HEIGHT = 480
-const FIRE_COOLDOWN_MS = 250
 const MAX_FRAME_MS = 50 // clamp long pauses (tab switch) so physics doesn't jump
-// How far from center the star sits - comfortably clear of the player's
-// center-spawn point so the fight never starts already inside the hazard.
-const STAR_DISTANCE_FROM_CENTER = 160
 
 /**
  * Mirrors hunt/subsystems.ts's degradedCostMultiplier (1x at full health, up
@@ -210,7 +207,7 @@ export function KillPhase({
           fireCooldown === 0 &&
           world.components.PhaserEnergy[playerEid] >= PHASER_COST_PER_SHOT
         ) {
-          fireCooldown = FIRE_COOLDOWN_MS
+          fireCooldown = PLAYER_FIRE_COOLDOWN_MS
           world.components.PhaserEnergy[playerEid] -= PHASER_COST_PER_SHOT
           spawnProjectile(world, {
             x: world.components.Position.x[playerEid],

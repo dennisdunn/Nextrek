@@ -1,8 +1,8 @@
 import { entityExists, query } from 'bitecs'
+import { HOMING_TURN_RATE } from '../../balance'
 import type { KillWorld } from '../world'
 
-/** Degrees/sec a homing torpedo can turn - fast enough to reliably curve onto its target within the arena. */
-export const HOMING_TURN_RATE = 260
+export { HOMING_TURN_RATE }
 
 /** Aims from (fromX,fromY) toward (toX,toY) in the same heading convention as spawn.ts's headingToVelocity (0 = up, clockwise). */
 function headingTo(fromX: number, fromY: number, toX: number, toY: number): number {

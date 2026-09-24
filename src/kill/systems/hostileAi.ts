@@ -1,10 +1,9 @@
 import { entityExists, query } from 'bitecs'
+import { HOSTILE_FIRE_COOLDOWN_MS, HOSTILE_WEAPON_DAMAGE, HOSTILE_WEAPON_SPEED } from '../../balance'
 import { spawnProjectile } from '../spawn'
 import type { KillWorld } from '../world'
 
-export const HOSTILE_FIRE_COOLDOWN_MS = 1500
-export const HOSTILE_WEAPON_DAMAGE = 8
-export const HOSTILE_WEAPON_SPEED = 220
+export { HOSTILE_FIRE_COOLDOWN_MS, HOSTILE_WEAPON_DAMAGE, HOSTILE_WEAPON_SPEED }
 
 /** Aims from (fromX,fromY) toward (toX,toY) in the same heading convention as headingToVelocity (0 = up, clockwise). */
 function headingTo(fromX: number, fromY: number, toX: number, toY: number): number {

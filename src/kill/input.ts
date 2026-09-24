@@ -1,3 +1,4 @@
+import { DRAG, MAX_SPEED, ROTATION_SPEED, THRUST_ACCEL } from '../balance'
 import type { KillWorld } from './world'
 
 export interface InputState {
@@ -52,10 +53,6 @@ export function bindInput(state: InputState): () => void {
   }
 }
 
-const ROTATION_SPEED = 220 // degrees/sec
-const THRUST_ACCEL = 180 // px/sec^2
-const MAX_SPEED = 260 // px/sec
-const DRAG = 0.35 // fraction of velocity bled off per second - arcade feel, not true inertia
 
 /** Apply player steering/thrust for one tick. Firing is handled by the caller (needs a cooldown + spawn access). */
 export function inputSystem(world: KillWorld, playerEid: number, input: InputState): void {

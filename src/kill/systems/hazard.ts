@@ -1,8 +1,8 @@
 import { addComponent, hasComponent, query } from 'bitecs'
+import { STAR_DAMAGE_PER_SECOND } from '../../balance'
 import type { KillWorld } from '../world'
 
-/** Continuous hull damage per second of contact - close to a full-health ship's hull in under 2 seconds. Bypasses shields; a star isn't weapon fire. */
-export const STAR_DAMAGE_PER_SECOND = 60
+export { STAR_DAMAGE_PER_SECOND }
 
 function markDead(world: KillWorld, eid: number): void {
   const { Dead } = world.components

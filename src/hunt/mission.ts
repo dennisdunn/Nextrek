@@ -1,6 +1,6 @@
-export const STARTING_STARDATE = 2395.0
-export const STARDATE_PER_NORMAL_MOVE = 0.1
-export const STARDATE_PER_WARP_MOVE = 0.05
+import { HOSTILE_QUOTA, STARDATE_BUDGET, STARDATE_PER_NORMAL_MOVE, STARDATE_PER_WARP_MOVE, STARTING_STARDATE } from '../balance'
+
+export { HOSTILE_QUOTA, STARDATE_BUDGET, STARDATE_PER_NORMAL_MOVE, STARDATE_PER_WARP_MOVE, STARTING_STARDATE }
 
 /** Time cost of a single hop - warp is faster, not just cheaper in energy. */
 export function stardateCost(warpEngaged: boolean): number {
@@ -15,18 +15,6 @@ export function tacticalAlert(hostileHere: boolean, sensedNearbyCount: number): 
   if (sensedNearbyCount > 0) return 'yellow'
   return 'green'
 }
-
-/**
- * Normal-mode objective: destroy this many hostiles before the mission
- * clock runs out. A fixed number rather than "every hostile the galaxy
- * happened to seed" - simpler to reason about, and doesn't force a full
- * sweep of the map to win. (Survival mode, with no clock or quota, is a
- * distinct mode to add later - not a variation of this one.)
- */
-export const HOSTILE_QUOTA = 15
-
-/** Stardates allotted for the whole mission, starting from STARTING_STARDATE. */
-export const STARDATE_BUDGET = 20
 
 /** The stardate at which time runs out. */
 export const MISSION_DEADLINE = STARTING_STARDATE + STARDATE_BUDGET

@@ -1,3 +1,7 @@
+import { CRITICAL_SYSTEM_THRESHOLD, HEALTHY_SYSTEM_THRESHOLD, REFUND_EFFICIENCY } from '../balance'
+
+export { CRITICAL_SYSTEM_THRESHOLD, HEALTHY_SYSTEM_THRESHOLD, REFUND_EFFICIENCY }
+
 export type Subsystem = 'shields' | 'phasers'
 
 export interface EnergyPools {
@@ -24,15 +28,6 @@ export function allocate(pools: EnergyPools, subsystem: Subsystem, targetLevel: 
     [subsystem]: next,
   }
 }
-
-/**
- * Fraction of leftover shield/phaser energy actually recovered when
- * combat ends. A one-way conversion loss: allocating energy "just in
- * case" and never spending it still costs you (1 - this) of it, so
- * over-committing before a fight isn't free just because it's undone
- * afterward.
- */
-export const REFUND_EFFICIENCY = 0.5
 
 /**
  * Stand shields and phasers down after combat. Only the reported
@@ -99,11 +94,6 @@ export function fullSubsystemHealth(): SubsystemHealth {
 export function systemEfficiency(health: number): number {
   return Math.max(0, Math.min(100, health)) / 100
 }
-
-/** At or below this, a system reads as critical (red) rather than merely degraded. */
-export const CRITICAL_SYSTEM_THRESHOLD = 40
-/** At or above this, a system reads as fully healthy (green) rather than degraded. */
-export const HEALTHY_SYSTEM_THRESHOLD = 80
 
 /** Annunciator color class for a system readout at this health - used by Damage control's status grid. */
 export function systemAnnunciatorClass(health: number): string {

@@ -1,3 +1,11 @@
+import {
+  ANOMALY_DENSITY,
+  HOSTILE_DENSITY,
+  MAX_HOSTILES_PER_SECTOR,
+  STARBASE_DENSITY,
+  STAR_HAZARD_DENSITY,
+  WARP_RADIUS,
+} from '../balance'
 import type { Edge, NodeId } from '../graph/UndoGraph'
 import { UndoGraph } from '../graph/UndoGraph'
 import { buildPolarGridEdges } from '../graph/polarTopology'
@@ -5,8 +13,14 @@ import { applyAnomalyPlacements, pickAnomalyPlacements, type AnomalyPlacement } 
 import { createSectors, RING_NAMES, sectorId, sectorsInRing, type Sector } from './cartography'
 import { buildWarpEdges, type GalaxyEdgeData } from './warpNetwork'
 
-/** A sector can hold a small pack of hostiles, not just a lone one - up to this many, fixed at seeding. */
-export const MAX_HOSTILES_PER_SECTOR = 3
+export {
+  ANOMALY_DENSITY,
+  HOSTILE_DENSITY,
+  MAX_HOSTILES_PER_SECTOR,
+  STARBASE_DENSITY,
+  STAR_HAZARD_DENSITY,
+  WARP_RADIUS,
+}
 
 export interface SectorData extends Sector {
   hostile: boolean
@@ -38,9 +52,6 @@ export function applyCombatResult(sector: SectorData, hostileHealthsRemaining: n
 }
 
 export type Galaxy = UndoGraph<SectorData, GalaxyEdgeData>
-
-/** How far (in impulse hops) a single warp jump can reach. */
-export const WARP_RADIUS = 3
 
 /**
  * Impulse space: angularly wraps around the galaxy (it's a full circle),
@@ -100,10 +111,10 @@ export interface CreateGalaxyOptions {
 
 export function createGalaxy(options: CreateGalaxyOptions = {}): Galaxy {
   const {
-    hostileDensity = 0.12,
-    anomalyDensity = 0.08,
-    starbaseDensity = 0.05,
-    starHazardDensity = 0.1,
+    hostileDensity = HOSTILE_DENSITY,
+    anomalyDensity = ANOMALY_DENSITY,
+    starbaseDensity = STARBASE_DENSITY,
+    starHazardDensity = STAR_HAZARD_DENSITY,
     rng = Math.random,
     homeSector = { region: 0, ring: 0 },
   } = options
