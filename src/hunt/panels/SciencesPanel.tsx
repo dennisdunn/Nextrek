@@ -1,6 +1,7 @@
 import type { NodeId } from '../../graph/UndoGraph'
 import { GalaxyMap } from '../GalaxyMap'
 import type { Galaxy } from '../galaxy'
+import { systemAnnunciatorClass } from '../subsystems'
 import { Panel } from './Panel'
 
 export interface SciencesPanelProps {
@@ -9,6 +10,7 @@ export interface SciencesPanelProps {
   neighbors: NodeId[]
   known: ReadonlySet<NodeId>
   anomalyKnown: ReadonlySet<NodeId>
+  sensorsHealth: number
   onSelect: (id: NodeId) => void
   onLongRangeScan: () => void
   onSubspaceScan: () => void
@@ -20,6 +22,7 @@ export function SciencesPanel({
   neighbors,
   known,
   anomalyKnown,
+  sensorsHealth,
   onSelect,
   onLongRangeScan,
   onSubspaceScan,
@@ -34,6 +37,10 @@ export function SciencesPanel({
         anomalyKnown={anomalyKnown}
         onSelect={onSelect}
       />
+      <div className="readout-row">
+        <span>Sensors</span>
+        <span className={systemAnnunciatorClass(sensorsHealth)}>{Math.round(sensorsHealth)}%</span>
+      </div>
       <div className="scan-controls">
         <button type="button" onClick={onLongRangeScan}>
           Long-range scan

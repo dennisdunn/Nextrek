@@ -21,6 +21,8 @@ export interface CombatResult {
   leftoverPhaserEnergy: number
   /** Always 0 on victory; the hostile's surviving hull otherwise - see galaxy.ts's applyCombatResult. */
   hostileHealthRemaining: number
+  /** Hull damage taken this encounter - what the hunt phase converts into ship-system wear (see subsystems.ts). */
+  hullDamageTaken: number
 }
 
 /** Reported every tick so the hunt phase can persist a fled hostile's damage without waiting for onResolved. */
@@ -28,10 +30,10 @@ export interface LiveCombatState {
   hostileHealth: number
   shieldEnergy: number
   phaserEnergy: number
+  hullDamageTaken: number
 }
 
 export interface KillPhaseProps {
-  sectorName: string
   /** Identifies this encounter (the sector it's happening in) - the world is only (re)built when this changes. */
   encounterId: string
   /** Starting hull health for the hostile - a wounded one carries this over instead of spawning at full health. */
@@ -51,7 +53,6 @@ const FIRE_COOLDOWN_MS = 250
 const MAX_FRAME_MS = 50 // clamp long pauses (tab switch) so physics doesn't jump
 
 export function KillPhase({
-  sectorName,
   encounterId,
   hostileHealth,
   shieldLevel,
@@ -66,7 +67,6 @@ export function KillPhase({
   const levelsRef = useRef({ shieldLevel, phaserLevel })
   const worldRef = useRef<KillWorld | null>(null)
   const playerEidRef = useRef<number | null>(null)
-  const initialLoadout = loadoutFromEnergy(shieldLevel, phaserLevel)
 
   useEffect(() => {
     pausedRef.current = paused
@@ -117,6 +117,10 @@ export function KillPhase({
     // what gets reported back as "leftover" for the hunt phase to refund.
     let leftoverShieldEnergy = startingLoadout.shieldEnergy
     let leftoverPhaserEnergy = startingLoadout.phaserEnergy
+    // Last known hull value before the entity might vanish (defeat removes
+    // it) - BASE_HULL_HEALTH minus this is what gets reported as damage
+    // taken, for the hunt phase to convert into ship-system wear.
+    let lastHullHealth = BASE_HULL_HEALTH
     world.time.then = performance.now()
 
     const tick = (now: number) => {
@@ -165,10 +169,12 @@ export function KillPhase({
       if (entityExists(world, playerEid)) {
         leftoverShieldEnergy = world.components.ShieldEnergy[playerEid]
         leftoverPhaserEnergy = world.components.PhaserEnergy[playerEid]
+        lastHullHealth = world.components.Health[playerEid]
       }
       const hostileHealthRemaining = entityExists(world, hostileEid)
         ? Math.max(0, world.components.Health[hostileEid])
         : 0
+      const hullDamageTaken = Math.max(0, BASE_HULL_HEALTH - lastHullHealth)
 
       pruneSystem(world)
       renderSystem(world, ctx, WIDTH, HEIGHT)
@@ -177,22 +183,29 @@ export function KillPhase({
         hostileHealth: hostileHealthRemaining,
         shieldEnergy: Math.max(0, leftoverShieldEnergy),
         phaserEnergy: Math.max(0, leftoverPhaserEnergy),
+        hullDamageTaken,
       })
 
       if (hudRef.current) {
         const hull = entityExists(world, playerEid)
           ? Math.max(0, Math.round(world.components.Health[playerEid]))
           : 0
-        hudRef.current.textContent = `Hull ${hull}/${Math.round(BASE_HULL_HEALTH)} · Shields ${Math.max(0, Math.round(leftoverShieldEnergy))} · Phasers ${Math.max(0, Math.round(leftoverPhaserEnergy))} · Hostile hull ${Math.round(hostileHealthRemaining)}`
+        hudRef.current.textContent = `Hull ${hull}/${Math.round(BASE_HULL_HEALTH)} · Hostile hull ${Math.round(hostileHealthRemaining)}`
       }
 
       if (!resolved) {
         if (!entityExists(world, playerEid)) {
           resolved = true
-          onResolved({ outcome: 'defeat', leftoverShieldEnergy, leftoverPhaserEnergy, hostileHealthRemaining })
+          onResolved({ outcome: 'defeat', leftoverShieldEnergy, leftoverPhaserEnergy, hostileHealthRemaining, hullDamageTaken })
         } else if (hostileHealthRemaining <= 0) {
           resolved = true
-          onResolved({ outcome: 'victory', leftoverShieldEnergy, leftoverPhaserEnergy, hostileHealthRemaining: 0 })
+          onResolved({
+            outcome: 'victory',
+            leftoverShieldEnergy,
+            leftoverPhaserEnergy,
+            hostileHealthRemaining: 0,
+            hullDamageTaken,
+          })
         }
       }
 
@@ -216,11 +229,8 @@ export function KillPhase({
 
   return (
     <div className="kill-phase">
-      <h2>Red alert: {sectorName}</h2>
       <p ref={hudRef} className="kill-hud">
-        Hull {Math.round(BASE_HULL_HEALTH)}/{Math.round(BASE_HULL_HEALTH)} · Shields{' '}
-        {Math.round(initialLoadout.shieldEnergy)} · Phasers {Math.round(initialLoadout.phaserEnergy)} · Hostile hull{' '}
-        {Math.round(hostileHealth)}
+        Hull {Math.round(BASE_HULL_HEALTH)}/{Math.round(BASE_HULL_HEALTH)} · Hostile hull {Math.round(hostileHealth)}
       </p>
       <canvas ref={canvasRef} width={WIDTH} height={HEIGHT} className="kill-canvas" />
       <p className="kill-hint">

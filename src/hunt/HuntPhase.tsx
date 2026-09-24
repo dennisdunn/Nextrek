@@ -11,7 +11,6 @@ export type BridgeTab = 'sciences' | 'tactical'
 
 export interface Encounter {
   sectorId: NodeId
-  sectorName: string
   hostileHealth: number
 }
 
@@ -91,6 +90,7 @@ export function HuntPhase({
             neighbors={neighbors}
             known={known}
             anomalyKnown={anomalyKnown}
+            sensorsHealth={state.subsystems.sensors}
             onSelect={onMove}
             onLongRangeScan={longRangeScan}
             onSubspaceScan={subspaceScan}
@@ -99,7 +99,6 @@ export function HuntPhase({
         {encounter && (
           <div className="station-slot" style={{ display: activeTab === 'tactical' ? 'contents' : 'none' }}>
             <TacticalPanel
-              sectorName={encounter.sectorName}
               encounterId={encounter.sectorId}
               hostileHealth={encounter.hostileHealth}
               shieldLevel={state.energy.shields}
@@ -115,6 +114,7 @@ export function HuntPhase({
         <StatusPanel sectorName={currentSector?.name ?? 'Unknown sector'} stardate={state.stardate} alert={alert} />
         <EngineeringPanel
           energy={state.energy}
+          subsystems={state.subsystems}
           warpEngaged={state.warpEngaged}
           warpLocked={Boolean(encounter)}
           onToggleWarp={toggleWarp}

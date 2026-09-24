@@ -2,7 +2,6 @@ import { KillPhase, type CombatResult, type LiveCombatState } from '../../kill/K
 import { Panel } from './Panel'
 
 export interface TacticalPanelProps {
-  sectorName: string
   encounterId: string
   hostileHealth: number
   shieldLevel: number
@@ -13,7 +12,6 @@ export interface TacticalPanelProps {
 }
 
 export function TacticalPanel({
-  sectorName,
   encounterId,
   hostileHealth,
   shieldLevel,
@@ -25,7 +23,6 @@ export function TacticalPanel({
   return (
     <Panel title="Tactical" accent="tactical" className="panel--tactical">
       <KillPhase
-        sectorName={sectorName}
         encounterId={encounterId}
         hostileHealth={hostileHealth}
         shieldLevel={shieldLevel}

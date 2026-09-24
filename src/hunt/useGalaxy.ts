@@ -14,13 +14,26 @@ import {
   subspaceScanCost,
   WARP_ENGAGE_COST,
 } from './ship'
-import { allocate, refund, REFUND_EFFICIENCY, type EnergyPools, type Subsystem } from './subsystems'
+import {
+  allocate,
+  applySubsystemWear,
+  degradedCostMultiplier,
+  fullSubsystemHealth,
+  refund,
+  REFUND_EFFICIENCY,
+  SHIP_SYSTEM_LABEL,
+  systemEfficiency,
+  type EnergyPools,
+  type Subsystem,
+  type SubsystemHealth,
+} from './subsystems'
 
 export interface HuntState {
   position: NodeId
   warpEngaged: boolean
   stardate: number
   energy: EnergyPools
+  subsystems: SubsystemHealth
   visited: Set<NodeId>
   /** Sectors a long-range scan has revealed - what the strategic map shows, beyond what's been visited. */
   scanned: Set<NodeId>
@@ -52,6 +65,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     warpEngaged: false,
     stardate: STARTING_STARDATE,
     energy: { reserve: STARTING_ENERGY, shields: 0, phasers: 0 },
+    subsystems: fullSubsystemHealth(),
     visited: new Set([home]),
     scanned: new Set(),
     scannedAnomalies: new Set(),
@@ -79,7 +93,12 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     (target: NodeId): NodeId | false => {
       const edge = galaxy.outgoingEdges(state.position).find((e) => e.to === target)
       if (!edge) return false
-      const cost = moveCost(state.warpEngaged, edge.data?.distance ?? 1)
+      const baseCost = moveCost(state.warpEngaged, edge.data?.distance ?? 1)
+      // Impulse engines drive sublight travel only - a warp jump's cost
+      // answers to the warp drive's own health instead (see toggleWarp).
+      const cost = state.warpEngaged
+        ? baseCost
+        : Math.round(baseCost * degradedCostMultiplier(state.subsystems.impulseEngines))
       if (!canAfford(state.energy.reserve, cost)) {
         appendLog('Insufficient energy to move - reserves critical.')
         return false
@@ -155,12 +174,15 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
         energy: docked
           ? { reserve: STARTING_ENERGY, shields: 0, phasers: 0 }
           : { ...s.energy, reserve: s.energy.reserve - cost },
+        subsystems: docked ? fullSubsystemHealth() : s.subsystems,
         visited: new Set(s.visited).add(target).add(landedAt),
         warpEnteredBarrier: nextWarpEnteredBarrier,
       }))
       appendLog(message)
       if (docked) {
-        appendLog(`Docked at ${landedSector!.name} starbase - shields, phasers, and reserves fully restored.`)
+        appendLog(
+          `Docked at ${landedSector!.name} starbase - shields, phasers, and reserves fully restored; all systems repaired.`,
+        )
       }
       if (leavingWarpEnteredBarrier) {
         const departedName = galaxy.getNode(departedFrom)?.name ?? departedFrom
@@ -171,7 +193,16 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
       }
       return landedAt
     },
-    [galaxy, state.position, state.warpEngaged, state.energy.reserve, state.warpEnteredBarrier, home, appendLog],
+    [
+      galaxy,
+      state.position,
+      state.warpEngaged,
+      state.energy.reserve,
+      state.warpEnteredBarrier,
+      state.subsystems.impulseEngines,
+      home,
+      appendLog,
+    ],
   )
 
   const toggleWarp = useCallback(() => {
@@ -180,7 +211,12 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
       setState((s) => ({ ...s, warpEngaged: false }))
       appendLog('Warp drive disengaged.')
     } else {
-      if (!canAfford(state.energy.reserve, WARP_ENGAGE_COST)) {
+      if (state.subsystems.warpDrive <= 0) {
+        appendLog('Warp drive is offline - repairs needed at a starbase.')
+        return
+      }
+      const cost = Math.round(WARP_ENGAGE_COST * degradedCostMultiplier(state.subsystems.warpDrive))
+      if (!canAfford(state.energy.reserve, cost)) {
         appendLog('Insufficient energy to engage warp drive.')
         return
       }
@@ -188,32 +224,65 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
       setState((s) => ({
         ...s,
         warpEngaged: true,
-        energy: { ...s.energy, reserve: s.energy.reserve - WARP_ENGAGE_COST },
+        energy: { ...s.energy, reserve: s.energy.reserve - cost },
       }))
-      appendLog(`Warp drive engaged. (-${WARP_ENGAGE_COST} energy)`)
+      appendLog(`Warp drive engaged. (-${cost} energy)`)
     }
     bump()
-  }, [galaxy, state.warpEngaged, state.energy.reserve, appendLog, bump])
+  }, [galaxy, state.warpEngaged, state.energy.reserve, state.subsystems.warpDrive, appendLog, bump])
 
-  const allocateEnergy = useCallback((subsystem: Subsystem, targetLevel: number) => {
-    setState((s) => ({ ...s, energy: allocate(s.energy, subsystem, targetLevel) }))
-  }, [])
+  const allocateEnergy = useCallback(
+    (subsystem: Subsystem, targetLevel: number) => {
+      setState((s) => {
+        const health = subsystem === 'shields' ? s.subsystems.shieldGenerator : s.subsystems.phaserArray
+        const maxLevel = 100 * systemEfficiency(health)
+        return { ...s, energy: allocate(s.energy, subsystem, targetLevel, maxLevel) }
+      })
+    },
+    [],
+  )
 
-  const refundEnergy = useCallback(
-    (leftoverShields: number, leftoverPhasers: number) => {
-      setState((s) => ({ ...s, energy: refund(leftoverShields, leftoverPhasers, s.energy) }))
-      const recovered = Math.round(Math.max(0, leftoverShields + leftoverPhasers) * REFUND_EFFICIENCY)
+  /**
+   * Fold a finished (or fled) encounter back into ship state: refund
+   * whatever shield/phaser energy survived, and wear down a subsystem in
+   * proportion to hull damage taken. One combined update rather than two
+   * separate ones - both touch `energy`, and applying them as independent
+   * setState calls risked one clobbering the other's result.
+   */
+  const resolveEncounter = useCallback(
+    (hullDamageTaken: number, leftoverShieldEnergy: number, leftoverPhaserEnergy: number) => {
+      const { subsystems, damagedSystem } = applySubsystemWear(state.subsystems, hullDamageTaken)
+      const refunded = refund(leftoverShieldEnergy, leftoverPhaserEnergy, state.energy)
+      // A shield generator or phaser array just damaged this same encounter
+      // can drop below whatever the refund left allocated to it - re-clamp
+      // both pools to their (possibly reduced) caps.
+      const shieldCap = 100 * systemEfficiency(subsystems.shieldGenerator)
+      const phaserCap = 100 * systemEfficiency(subsystems.phaserArray)
+      const energy = allocate(
+        allocate(refunded, 'shields', Math.min(refunded.shields, shieldCap), shieldCap),
+        'phasers',
+        Math.min(refunded.phasers, phaserCap),
+        phaserCap,
+      )
+      setState((s) => ({ ...s, subsystems, energy }))
+
+      const recovered = Math.round(Math.max(0, leftoverShieldEnergy + leftoverPhaserEnergy) * REFUND_EFFICIENCY)
       appendLog(
         recovered > 0
           ? `Shields and phasers stood down - ${recovered} energy recovered to the main reserve.`
           : 'Shields and phasers were fully depleted in the engagement.',
       )
+      if (damagedSystem) {
+        appendLog(
+          `${SHIP_SYSTEM_LABEL[damagedSystem]} damaged in the engagement - down to ${Math.round(subsystems[damagedSystem])}%.`,
+        )
+      }
     },
-    [appendLog],
+    [state.subsystems, state.energy, appendLog],
   )
 
   const longRangeScan = useCallback(() => {
-    const cost = longRangeScanCost(state.warpEngaged)
+    const cost = Math.round(longRangeScanCost(state.warpEngaged) * degradedCostMultiplier(state.subsystems.sensors))
     if (!canAfford(state.energy.reserve, cost)) {
       appendLog('Insufficient energy for a long-range scan.')
       return false
@@ -228,10 +297,10 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
       `Long-range scan complete: ${targets.length} sector${targets.length === 1 ? '' : 's'} mapped. (-${cost} energy)`,
     )
     return true
-  }, [galaxy, state.position, state.warpEngaged, state.energy.reserve, appendLog])
+  }, [galaxy, state.position, state.warpEngaged, state.energy.reserve, state.subsystems.sensors, appendLog])
 
   const subspaceScan = useCallback(() => {
-    const cost = subspaceScanCost(state.warpEngaged)
+    const cost = Math.round(subspaceScanCost(state.warpEngaged) * degradedCostMultiplier(state.subsystems.sensors))
     if (!canAfford(state.energy.reserve, cost)) {
       appendLog('Insufficient energy for a subspace scan.')
       return false
@@ -249,7 +318,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
         : `Subspace scan complete: no anomalies in range. (-${cost} energy)`,
     )
     return true
-  }, [galaxy, state.position, state.warpEngaged, state.energy.reserve, appendLog])
+  }, [galaxy, state.position, state.warpEngaged, state.energy.reserve, state.subsystems.sensors, appendLog])
 
   return {
     galaxy,
@@ -263,7 +332,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     moveTo,
     toggleWarp,
     allocateEnergy,
-    refundEnergy,
+    resolveEncounter,
     longRangeScan,
     subspaceScan,
   }

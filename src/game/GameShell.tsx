@@ -18,7 +18,7 @@ import { HOSTILE_HULL_HEALTH } from '../kill/loadout'
  */
 export function GameShell() {
   const controller = useGalaxy()
-  const { galaxy, moveTo, refundEnergy } = controller
+  const { galaxy, moveTo, resolveEncounter } = controller
   const [encounter, setEncounter] = useState<Encounter | null>(null)
   const [activeTab, setActiveTab] = useState<BridgeTab>('sciences')
   // Updated every tick by KillPhase, out-of-band from React state - a fight
@@ -27,15 +27,21 @@ export function GameShell() {
   const liveCombatRef = useRef<LiveCombatState | null>(null)
 
   const disengage = useCallback(
-    (sectorId: NodeId, hostileHealthRemaining: number, leftoverShieldEnergy: number, leftoverPhaserEnergy: number) => {
+    (
+      sectorId: NodeId,
+      hostileHealthRemaining: number,
+      leftoverShieldEnergy: number,
+      leftoverPhaserEnergy: number,
+      hullDamageTaken: number,
+    ) => {
       const sector = galaxy.getNode(sectorId)
       if (sector) galaxy.setNode(sectorId, applyCombatResult(sector, hostileHealthRemaining))
-      refundEnergy(leftoverShieldEnergy, leftoverPhaserEnergy)
+      resolveEncounter(hullDamageTaken, leftoverShieldEnergy, leftoverPhaserEnergy)
       liveCombatRef.current = null
       setEncounter(null)
       setActiveTab('sciences')
     },
-    [galaxy, refundEnergy],
+    [galaxy, resolveEncounter],
   )
 
   const handleMove = useCallback(
@@ -57,13 +63,14 @@ export function GameShell() {
           live?.hostileHealth ?? encounter.hostileHealth,
           live?.shieldEnergy ?? 0,
           live?.phaserEnergy ?? 0,
+          live?.hullDamageTaken ?? 0,
         )
       }
 
       const sector = galaxy.getNode(landedAt)
       if (sector?.hostile) {
         liveCombatRef.current = null
-        setEncounter({ sectorId: landedAt, sectorName: sector.name, hostileHealth: sector.hostileHealth ?? HOSTILE_HULL_HEALTH })
+        setEncounter({ sectorId: landedAt, hostileHealth: sector.hostileHealth ?? HOSTILE_HULL_HEALTH })
         setActiveTab('tactical')
       }
     },
@@ -73,7 +80,13 @@ export function GameShell() {
   const handleResolved = useCallback(
     (result: CombatResult) => {
       if (!encounter) return
-      disengage(encounter.sectorId, result.hostileHealthRemaining, result.leftoverShieldEnergy, result.leftoverPhaserEnergy)
+      disengage(
+        encounter.sectorId,
+        result.hostileHealthRemaining,
+        result.leftoverShieldEnergy,
+        result.leftoverPhaserEnergy,
+        result.hullDamageTaken,
+      )
     },
     [encounter, disengage],
   )

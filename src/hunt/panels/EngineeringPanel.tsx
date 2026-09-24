@@ -1,9 +1,10 @@
 import { STARTING_ENERGY } from '../ship'
-import type { EnergyPools, Subsystem } from '../subsystems'
+import { systemAnnunciatorClass, type EnergyPools, type Subsystem, type SubsystemHealth } from '../subsystems'
 import { Panel } from './Panel'
 
 export interface EngineeringPanelProps {
   energy: EnergyPools
+  subsystems: SubsystemHealth
   warpEngaged: boolean
   /** True during an active encounter - warp can't be used to break off a fight. */
   warpLocked: boolean
@@ -11,8 +12,22 @@ export interface EngineeringPanelProps {
   onAllocate: (subsystem: Subsystem, level: number) => void
 }
 
-export function EngineeringPanel({ energy, warpEngaged, warpLocked, onToggleWarp, onAllocate }: EngineeringPanelProps) {
+export function EngineeringPanel({
+  energy,
+  subsystems,
+  warpEngaged,
+  warpLocked,
+  onToggleWarp,
+  onAllocate,
+}: EngineeringPanelProps) {
   const reservePct = Math.max(0, Math.min(100, (energy.reserve / STARTING_ENERGY) * 100))
+  const warpOffline = subsystems.warpDrive <= 0
+  const warpDisabled = warpLocked || warpOffline
+  const warpTitle = warpLocked
+    ? 'Warp offline during red alert'
+    : warpOffline
+      ? 'Warp drive offline - repairs needed at a starbase'
+      : undefined
 
   return (
     <Panel title="Engineering" accent="engineering">
@@ -27,12 +42,31 @@ export function EngineeringPanel({ energy, warpEngaged, warpLocked, onToggleWarp
         />
       </div>
 
+      <dl className="readout system-status">
+        <dt>Warp drive</dt>
+        <dd>
+          <span className={systemAnnunciatorClass(subsystems.warpDrive)}>{Math.round(subsystems.warpDrive)}%</span>
+        </dd>
+        <dt>Shield generator</dt>
+        <dd>
+          <span className={systemAnnunciatorClass(subsystems.shieldGenerator)}>{Math.round(subsystems.shieldGenerator)}%</span>
+        </dd>
+        <dt>Phaser array</dt>
+        <dd>
+          <span className={systemAnnunciatorClass(subsystems.phaserArray)}>{Math.round(subsystems.phaserArray)}%</span>
+        </dd>
+        <dt>Impulse engines</dt>
+        <dd>
+          <span className={systemAnnunciatorClass(subsystems.impulseEngines)}>{Math.round(subsystems.impulseEngines)}%</span>
+        </dd>
+      </dl>
+
       <label className="slider-row">
         <span>Shields {Math.round(energy.shields)}</span>
         <input
           type="range"
           min={0}
-          max={100}
+          max={Math.floor(subsystems.shieldGenerator)}
           value={energy.shields}
           onChange={(e) => onAllocate('shields', Number(e.target.value))}
         />
@@ -43,19 +77,13 @@ export function EngineeringPanel({ energy, warpEngaged, warpLocked, onToggleWarp
         <input
           type="range"
           min={0}
-          max={100}
+          max={Math.floor(subsystems.phaserArray)}
           value={energy.phasers}
           onChange={(e) => onAllocate('phasers', Number(e.target.value))}
         />
       </label>
 
-      <button
-        type="button"
-        className="warp-toggle"
-        onClick={onToggleWarp}
-        disabled={warpLocked}
-        title={warpLocked ? 'Warp offline during red alert' : undefined}
-      >
+      <button type="button" className="warp-toggle" onClick={onToggleWarp} disabled={warpDisabled} title={warpTitle}>
         {warpEngaged ? 'Disengage warp' : 'Engage warp'}
       </button>
     </Panel>
