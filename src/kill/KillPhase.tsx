@@ -332,10 +332,6 @@ export function KillPhase({
         {hostileHealths.length} ({Math.round(totalHostileHealth)} hull) · Torpedoes {torpedoesRemaining}
       </p>
       <canvas ref={canvasRef} width={WIDTH} height={HEIGHT} className="kill-canvas" />
-      <p className="kill-hint">
-        Arrows / WASD to steer and thrust, Space to fire, Enter/T for a homing torpedo
-        {hasStarHazard ? ' - avoid the star' : ''}. Switch to Sciences and pick a sector to disengage.
-      </p>
     </div>
   )
 }
