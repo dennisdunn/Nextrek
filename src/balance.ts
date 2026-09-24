@@ -146,6 +146,43 @@ export const HOSTILE_WEAPON_DAMAGE = 8
 export const HOSTILE_WEAPON_SPEED = 220
 
 // ---------------------------------------------------------------------------
+// Kill-phase spawn defaults (kill/spawn.ts) - the arguments every real call
+// site leaves at their default, so these are the actual live values, not
+// just fallbacks.
+// ---------------------------------------------------------------------------
+
+export const PLAYER_HITBOX_RADIUS = 14
+export const HOSTILE_HITBOX_RADIUS = 16
+
+// A hostile drifts at a random speed in this range from the moment it
+// spawns - not stationary, but not chasing the player either.
+export const HOSTILE_DRIFT_SPEED_MIN = 40
+export const HOSTILE_DRIFT_SPEED_MAX = 80
+
+/** A hostile's first shot is delayed by a random amount up to this, so a pack doesn't volley in perfect sync on spawn. */
+export const HOSTILE_FIRE_STAGGER_MS = 1000
+
+/** The star hazard's actual lethal radius - separate from STAR_DISTANCE_FROM_CENTER, which only places it. */
+export const STAR_HAZARD_RADIUS = 40
+
+/** An ordinary phaser bolt's speed and lifetime - a torpedo overrides both (see TORPEDO_SPEED/TORPEDO_TTL_MS above). */
+export const PHASER_BOLT_SPEED = 320
+export const PHASER_BOLT_TTL_MS = 1200
+
+/** Collision radius shared by every projectile, phaser bolt or torpedo alike. */
+export const PROJECTILE_RADIUS = 3
+
+// ---------------------------------------------------------------------------
+// Hunt UI (hunt/useGalaxy.ts, hunt/panels/EngineeringPanel.tsx)
+// ---------------------------------------------------------------------------
+
+/** How many comms log lines are kept - older ones just scroll out of memory, not just out of view. */
+export const COMMS_LOG_LIMIT = 20
+
+/** Reserve power bar reads as critically low below this percentage. */
+export const LOW_POWER_THRESHOLD = 20
+
+// ---------------------------------------------------------------------------
 // Player ship handling (kill/input.ts)
 // ---------------------------------------------------------------------------
 

@@ -1,5 +1,16 @@
 import { addComponent, addEntity } from 'bitecs'
-import { HOSTILE_HULL_HEALTH } from './loadout'
+import {
+  HOSTILE_DRIFT_SPEED_MAX,
+  HOSTILE_DRIFT_SPEED_MIN,
+  HOSTILE_FIRE_STAGGER_MS,
+  HOSTILE_HITBOX_RADIUS,
+  PHASER_BOLT_SPEED,
+  PHASER_BOLT_TTL_MS,
+  PLAYER_HITBOX_RADIUS,
+  PROJECTILE_RADIUS,
+  STAR_HAZARD_RADIUS,
+} from '../balance'
+import { BASE_HULL_HEALTH, BASE_WEAPON_DAMAGE, HOSTILE_HULL_HEALTH } from './loadout'
 import type { KillWorld } from './world'
 
 export interface SpawnShipOptions {
@@ -39,8 +50,8 @@ export function spawnPlayer(world: KillWorld, opts: SpawnPlayerOptions): number 
   Velocity.x[eid] = 0
   Velocity.y[eid] = 0
   Heading[eid] = opts.heading ?? 0
-  Radius[eid] = opts.radius ?? 14
-  Health[eid] = opts.health ?? 100
+  Radius[eid] = opts.radius ?? PLAYER_HITBOX_RADIUS
+  Health[eid] = opts.health ?? BASE_HULL_HEALTH
   Player[eid] = 1
   ShieldEnergy[eid] = Math.max(0, opts.shieldEnergy ?? 0)
   PhaserEnergy[eid] = Math.max(0, opts.phaserEnergy ?? 0)
@@ -60,17 +71,18 @@ export function spawnHostile(world: KillWorld, opts: SpawnShipOptions): number {
   addComponent(world, eid, FireCooldown)
 
   const heading = opts.heading ?? Math.random() * 360
-  const { x: vx, y: vy } = headingToVelocity(heading, 40 + Math.random() * 40)
+  const driftSpeed = HOSTILE_DRIFT_SPEED_MIN + Math.random() * (HOSTILE_DRIFT_SPEED_MAX - HOSTILE_DRIFT_SPEED_MIN)
+  const { x: vx, y: vy } = headingToVelocity(heading, driftSpeed)
   Position.x[eid] = opts.x
   Position.y[eid] = opts.y
   Heading[eid] = heading
   Velocity.x[eid] = vx
   Velocity.y[eid] = vy
-  Radius[eid] = opts.radius ?? 16
+  Radius[eid] = opts.radius ?? HOSTILE_HITBOX_RADIUS
   Health[eid] = opts.health ?? HOSTILE_HULL_HEALTH
   Hostile[eid] = 1
   // staggered so a pack of hostiles doesn't volley in perfect sync
-  FireCooldown[eid] = Math.random() * 1000
+  FireCooldown[eid] = Math.random() * HOSTILE_FIRE_STAGGER_MS
   return eid
 }
 
@@ -89,7 +101,7 @@ export function spawnHazard(world: KillWorld, opts: SpawnHazardOptions): number 
   addComponent(world, eid, Hazard)
   Position.x[eid] = opts.x
   Position.y[eid] = opts.y
-  Radius[eid] = opts.radius ?? 40
+  Radius[eid] = opts.radius ?? STAR_HAZARD_RADIUS
   Hazard[eid] = 1
   return eid
 }
@@ -118,15 +130,15 @@ export function spawnProjectile(world: KillWorld, opts: FireOptions): number {
   addComponent(world, eid, Owner)
   addComponent(world, eid, Ttl)
 
-  const { x: vx, y: vy } = headingToVelocity(opts.heading, opts.speed ?? 320)
+  const { x: vx, y: vy } = headingToVelocity(opts.heading, opts.speed ?? PHASER_BOLT_SPEED)
   Position.x[eid] = opts.x
   Position.y[eid] = opts.y
   Velocity.x[eid] = vx
   Velocity.y[eid] = vy
-  Radius[eid] = opts.radius ?? 3
-  Weapon[eid] = opts.damage ?? 20
+  Radius[eid] = opts.radius ?? PROJECTILE_RADIUS
+  Weapon[eid] = opts.damage ?? BASE_WEAPON_DAMAGE
   Owner[eid] = opts.owner
-  Ttl[eid] = opts.ttl ?? 1200
+  Ttl[eid] = opts.ttl ?? PHASER_BOLT_TTL_MS
   if (opts.homingTarget !== undefined) {
     addComponent(world, eid, Homing)
     addComponent(world, eid, HomingTarget)

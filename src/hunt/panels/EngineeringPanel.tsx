@@ -1,3 +1,4 @@
+import { LOW_POWER_THRESHOLD } from '../../balance'
 import { STARTING_ENERGY } from '../ship'
 import type { EnergyPools, Subsystem, SubsystemHealth } from '../subsystems'
 import { Panel } from './Panel'
@@ -27,7 +28,7 @@ export function EngineeringPanel({ energy, subsystems, torpedoes, onAllocate }: 
       </div>
       <div className="bar" style={{ marginTop: -8 }}>
         <div
-          className={`bar__fill${reservePct < 20 ? ' bar__fill--low' : ''}`}
+          className={`bar__fill${reservePct < LOW_POWER_THRESHOLD ? ' bar__fill--low' : ''}`}
           style={{ width: `${reservePct}%` }}
         />
       </div>

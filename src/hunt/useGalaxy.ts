@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { COMMS_LOG_LIMIT } from '../balance'
 import { barrier } from '../graph/anomalies'
 import type { NodeId } from '../graph/UndoGraph'
 import { pickGateDestination } from './anomalyEffects'
@@ -103,7 +104,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
 
   const bump = useCallback(() => setVersion((v) => v + 1), [])
   const appendLog = useCallback(
-    (message: string) => setState((s) => ({ ...s, log: [...s.log.slice(-19), message] })),
+    (message: string) => setState((s) => ({ ...s, log: [...s.log.slice(-(COMMS_LOG_LIMIT - 1)), message] })),
     [],
   )
   // Lets resolveEncounter read the latest state without closing over it
