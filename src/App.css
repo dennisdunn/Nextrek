@@ -253,6 +253,17 @@
   stroke-width: 1.5;
 }
 
+/* Amber, like the kill-phase star hazard's own render color - the one marker warning of a kill-phase hazard rather than a navigational one. */
+.sector-marker--star {
+  fill: none;
+  stroke: #f59e0b;
+  stroke-width: 1.5;
+}
+
+.sector-marker--star .sector-marker__core {
+  fill: #f59e0b;
+}
+
 /* Drawn on top of the wedges once both ends of a conduit are identified. */
 .conduit-link {
   stroke: #e879f9;

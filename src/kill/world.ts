@@ -31,6 +31,8 @@ export function createKillWorld() {
       Homing: [] as number[],
       /** Entity id a homing projectile steers toward. */
       HomingTarget: [] as number[],
+      /** Tags a static environmental hazard (a star) - see systems/hazard.ts. */
+      Hazard: [] as number[],
     },
     time: {
       delta: 0,

@@ -3,11 +3,12 @@ import { Panel } from './Panel'
 
 export interface TacticalPanelProps {
   encounterId: string
-  hostileHealth: number
+  hostileHealths: number[]
   shieldLevel: number
   phaserLevel: number
   torpedoesRemaining: number
   torpedoTubesHealth: number
+  hasStarHazard: boolean
   paused: boolean
   onResolved: (result: CombatResult) => void
   onLiveUpdate: (state: LiveCombatState) => void
@@ -15,11 +16,12 @@ export interface TacticalPanelProps {
 
 export function TacticalPanel({
   encounterId,
-  hostileHealth,
+  hostileHealths,
   shieldLevel,
   phaserLevel,
   torpedoesRemaining,
   torpedoTubesHealth,
+  hasStarHazard,
   paused,
   onResolved,
   onLiveUpdate,
@@ -28,11 +30,12 @@ export function TacticalPanel({
     <Panel title="Tactical" accent="tactical" className="panel--tactical">
       <KillPhase
         encounterId={encounterId}
-        hostileHealth={hostileHealth}
+        hostileHealths={hostileHealths}
         shieldLevel={shieldLevel}
         phaserLevel={phaserLevel}
         torpedoesRemaining={torpedoesRemaining}
         torpedoTubesHealth={torpedoTubesHealth}
+        hasStarHazard={hasStarHazard}
         paused={paused}
         onResolved={onResolved}
         onLiveUpdate={onLiveUpdate}

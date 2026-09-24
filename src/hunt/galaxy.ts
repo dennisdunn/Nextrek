@@ -5,30 +5,36 @@ import { applyAnomalyPlacements, pickAnomalyPlacements, type AnomalyPlacement } 
 import { createSectors, RING_NAMES, sectorId, sectorsInRing, type Sector } from './cartography'
 import { buildWarpEdges, type GalaxyEdgeData } from './warpNetwork'
 
+/** A sector can hold a small pack of hostiles, not just a lone one - up to this many, fixed at seeding. */
+export const MAX_HOSTILES_PER_SECTOR = 3
+
 export interface SectorData extends Sector {
   hostile: boolean
+  /** How many hostiles are (or were) here - fixed at seeding, independent of how many have since died. 0 when !hostile. */
+  hostileCount: number
   /**
-   * Remaining hull health left over from an earlier, unfinished encounter
-   * (a flee or a defeat) - undefined means "never engaged," so the kill
-   * phase spawns it at its own default instead of resetting a wounded
-   * hostile back to full health.
+   * Remaining health per hostile, index-aligned - undefined means "never
+   * engaged," so the kill phase spawns hostileCount of them at its own
+   * default health instead of resetting a wounded pack back to full.
    */
-  hostileHealth?: number
+  hostileHealths?: number[]
   anomaly?: AnomalyPlacement
   starbase: boolean
+  /** A star to avoid during any encounter here - heavy, continuous damage to anything (or anyone's shot) that touches it. */
+  hasStarHazard: boolean
 }
 
 /**
  * Fold a kill-phase encounter's outcome back into the sector it happened
- * in. A hostile out of health is gone for good; otherwise its remaining
- * health carries over, so leaving a fight unfinished (by fleeing or losing)
- * doesn't quietly reset it back to full.
+ * in. A pack with every hostile out of health is gone for good; otherwise
+ * their remaining health carries over, so leaving a fight unfinished (by
+ * fleeing or losing) doesn't quietly reset it back to full.
  */
-export function applyCombatResult(sector: SectorData, hostileHealthRemaining: number): SectorData {
-  if (hostileHealthRemaining <= 0) {
-    return { ...sector, hostile: false, hostileHealth: undefined }
+export function applyCombatResult(sector: SectorData, hostileHealthsRemaining: number[]): SectorData {
+  if (hostileHealthsRemaining.every((health) => health <= 0)) {
+    return { ...sector, hostile: false, hostileCount: 0, hostileHealths: undefined }
   }
-  return { ...sector, hostileHealth: hostileHealthRemaining }
+  return { ...sector, hostileHealths: hostileHealthsRemaining }
 }
 
 export type Galaxy = UndoGraph<SectorData, GalaxyEdgeData>
@@ -71,6 +77,8 @@ export interface CreateGalaxyOptions {
   anomalyDensity?: number
   /** Fraction of eligible (non-home, non-hostile, non-anomaly) sectors seeded with a starbase, in [0, 1]. */
   starbaseDensity?: number
+  /** Fraction of hostile sectors (not otherwise complicated by an anomaly) that also get a star hazard, in [0, 1]. */
+  starHazardDensity?: number
   rng?: () => number
   homeSector?: { region: number; ring: number }
 }
@@ -80,6 +88,7 @@ export function createGalaxy(options: CreateGalaxyOptions = {}): Galaxy {
     hostileDensity = 0.12,
     anomalyDensity = 0.08,
     starbaseDensity = 0.05,
+    starHazardDensity = 0.1,
     rng = Math.random,
     homeSector = { region: 0, ring: 0 },
   } = options
@@ -106,10 +115,18 @@ export function createGalaxy(options: CreateGalaxyOptions = {}): Galaxy {
     // handling for why that's actually safe.
     const noHostile = anomaly?.kind === 'barrier' || anomaly?.kind === 'gate'
     const hostile = !isHome && !noHostile && rng() < hostileDensity
+    const hostileCount = hostile ? 1 + Math.floor(rng() * MAX_HOSTILES_PER_SECTOR) : 0
     // A starbase is a safe haven, not a hazard - never share a sector with
     // an anomaly (of any kind) or a hostile.
     const starbase = !isHome && !anomaly && !hostile && rng() < starbaseDensity
-    return [id, { ...s, hostile, anomaly, starbase }]
+    // A star hazard only ever complicates an existing hostile encounter -
+    // that's the point, dodge the star while fighting. It's never a
+    // standalone hazard with nothing to fight (the hunt phase has no way
+    // to make that matter - stars only exist inside a kill-phase arena),
+    // and never shares a sector with an anomaly (already its own kind of
+    // complication) - `hostile` already rules out a starbase sector too.
+    const hasStarHazard = hostile && !anomaly && rng() < starHazardDensity
+    return [id, { ...s, hostile, hostileCount, anomaly, starbase, hasStarHazard }]
   })
 
   return new UndoGraph<SectorData, GalaxyEdgeData>(nodes, edges)

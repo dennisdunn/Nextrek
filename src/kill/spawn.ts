@@ -74,6 +74,26 @@ export function spawnHostile(world: KillWorld, opts: SpawnShipOptions): number {
   return eid
 }
 
+export interface SpawnHazardOptions {
+  x: number
+  y: number
+  radius?: number
+}
+
+/** A star: static, indestructible, and dangerous to anything that touches it - see systems/hazard.ts. */
+export function spawnHazard(world: KillWorld, opts: SpawnHazardOptions): number {
+  const eid = addEntity(world)
+  const { Position, Radius, Hazard } = world.components
+  addComponent(world, eid, Position)
+  addComponent(world, eid, Radius)
+  addComponent(world, eid, Hazard)
+  Position.x[eid] = opts.x
+  Position.y[eid] = opts.y
+  Radius[eid] = opts.radius ?? 40
+  Hazard[eid] = 1
+  return eid
+}
+
 export interface FireOptions {
   x: number
   y: number

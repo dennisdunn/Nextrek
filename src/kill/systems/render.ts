@@ -6,7 +6,7 @@ const TWO_PI = Math.PI * 2
 /** Draw every positioned entity as a heading-oriented triangle onto a 2D canvas. */
 export function renderSystem(world: KillWorld, ctx: CanvasRenderingContext2D, width: number, height: number): void {
   ctx.clearRect(0, 0, width, height)
-  const { Position, Heading, Radius, Player, Hostile, Weapon } = world.components
+  const { Position, Heading, Radius, Player, Hostile, Weapon, Hazard } = world.components
 
   for (const eid of query(world, [Position, Radius])) {
     const x = Position.x[eid]
@@ -18,7 +18,17 @@ export function renderSystem(world: KillWorld, ctx: CanvasRenderingContext2D, wi
     ctx.translate(x, y)
     ctx.rotate((heading * Math.PI) / 180)
 
-    if (Weapon[eid]) {
+    if (Hazard[eid]) {
+      ctx.fillStyle = '#f59e0b'
+      ctx.beginPath()
+      ctx.arc(0, 0, r, 0, TWO_PI)
+      ctx.fill()
+      ctx.strokeStyle = '#fde68a'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.arc(0, 0, r + 5, 0, TWO_PI)
+      ctx.stroke()
+    } else if (Weapon[eid]) {
       ctx.fillStyle = '#8ce8ff'
       ctx.beginPath()
       ctx.arc(0, 0, r, 0, TWO_PI)

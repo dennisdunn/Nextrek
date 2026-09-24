@@ -11,7 +11,8 @@ export type BridgeTab = 'sciences' | 'tactical'
 
 export interface Encounter {
   sectorId: NodeId
-  hostileHealth: number
+  hostileHealths: number[]
+  hasStarHazard: boolean
 }
 
 export interface HuntPhaseProps {
@@ -100,11 +101,12 @@ export function HuntPhase({
           <div className="station-slot" style={{ display: activeTab === 'tactical' ? 'contents' : 'none' }}>
             <TacticalPanel
               encounterId={encounter.sectorId}
-              hostileHealth={encounter.hostileHealth}
+              hostileHealths={encounter.hostileHealths}
               shieldLevel={state.energy.shields}
               phaserLevel={state.energy.phasers}
               torpedoesRemaining={state.torpedoes}
               torpedoTubesHealth={state.subsystems.torpedoTubes}
+              hasStarHazard={encounter.hasStarHazard}
               paused={activeTab !== 'tactical'}
               onResolved={onCombatResolved}
               onLiveUpdate={onLiveCombatUpdate}

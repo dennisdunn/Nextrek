@@ -29,14 +29,14 @@ export function GameShell() {
   const disengage = useCallback(
     (
       sectorId: NodeId,
-      hostileHealthRemaining: number,
+      hostileHealthsRemaining: number[],
       leftoverShieldEnergy: number,
       leftoverPhaserEnergy: number,
       hullDamageTaken: number,
       torpedoesRemaining: number,
     ) => {
       const sector = galaxy.getNode(sectorId)
-      if (sector) galaxy.setNode(sectorId, applyCombatResult(sector, hostileHealthRemaining))
+      if (sector) galaxy.setNode(sectorId, applyCombatResult(sector, hostileHealthsRemaining))
       resolveEncounter(hullDamageTaken, leftoverShieldEnergy, leftoverPhaserEnergy, torpedoesRemaining)
       liveCombatRef.current = null
       setEncounter(null)
@@ -61,7 +61,7 @@ export function GameShell() {
         const live = liveCombatRef.current
         disengage(
           encounter.sectorId,
-          live?.hostileHealth ?? encounter.hostileHealth,
+          live?.hostileHealthsRemaining ?? encounter.hostileHealths,
           live?.shieldEnergy ?? 0,
           live?.phaserEnergy ?? 0,
           live?.hullDamageTaken ?? 0,
@@ -72,7 +72,11 @@ export function GameShell() {
       const sector = galaxy.getNode(landedAt)
       if (sector?.hostile) {
         liveCombatRef.current = null
-        setEncounter({ sectorId: landedAt, hostileHealth: sector.hostileHealth ?? HOSTILE_HULL_HEALTH })
+        setEncounter({
+          sectorId: landedAt,
+          hostileHealths: sector.hostileHealths ?? Array(sector.hostileCount).fill(HOSTILE_HULL_HEALTH),
+          hasStarHazard: sector.hasStarHazard,
+        })
         setActiveTab('tactical')
       }
     },
@@ -84,7 +88,7 @@ export function GameShell() {
       if (!encounter) return
       disengage(
         encounter.sectorId,
-        result.hostileHealthRemaining,
+        result.hostileHealthsRemaining,
         result.leftoverShieldEnergy,
         result.leftoverPhaserEnergy,
         result.hullDamageTaken,

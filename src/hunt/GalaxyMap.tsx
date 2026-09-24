@@ -43,7 +43,7 @@ function sectorCenter(inner: { r: number; theta: number }, outer: { r: number; t
   return toScreen((inner.r + outer.r) / 2, (inner.theta + outer.theta) / 2, scale)
 }
 
-type MarkerKind = 'base' | 'gate' | 'conduit'
+type MarkerKind = 'base' | 'gate' | 'conduit' | 'star'
 
 /**
  * Each kind gets its own shape rather than its own color - anomaly markers
@@ -74,6 +74,14 @@ function markerGlyph(kind: MarkerKind) {
     case 'conduit':
       // a diamond waypoint - matches the dashed link once both ends are known
       return <path d="M 0 -7 L 7 0 L 0 7 L -7 0 Z" />
+    case 'star':
+      // a small sun: filled disc plus four rays - the one hazard marker that isn't magenta (anomaly)
+      return (
+        <>
+          <circle r={6} className="sector-marker__core" />
+          <path d="M 0 -9 L 0 -6 M 0 6 L 0 9 M -9 0 L -6 0 M 6 0 L 9 0" />
+        </>
+      )
   }
 }
 
@@ -120,7 +128,16 @@ export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, on
           const isGate = isAnomaly && sector.anomaly?.kind === 'gate'
           const isConduit = isAnomaly && sector.anomaly?.kind === 'conduit'
           const isBase = isKnown && sector.starbase
-          const markerKind: MarkerKind | null = isBase ? 'base' : isGate ? 'gate' : isConduit ? 'conduit' : null
+          const isStarHazard = isKnown && sector.hasStarHazard
+          const markerKind: MarkerKind | null = isBase
+            ? 'base'
+            : isGate
+              ? 'gate'
+              : isConduit
+                ? 'conduit'
+                : isStarHazard
+                  ? 'star'
+                  : null
           const isReachable = neighbors.includes(id)
           const classes = ['sector']
           if (isHere) classes.push('sector--here')
@@ -139,12 +156,13 @@ export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, on
                 <title>
                   {sector.name}
                   {isHostile
-                    ? sector.hostileHealth !== undefined
-                      ? ` (hostile contact - wounded, ${Math.round(sector.hostileHealth)} hull)`
-                      : ' (hostile contact)'
+                    ? sector.hostileHealths !== undefined
+                      ? ` (hostile contact - wounded: ${sector.hostileHealths.map((h) => Math.round(h)).join(', ')} hull)`
+                      : ` (hostile contact - ${sector.hostileCount} ship${sector.hostileCount === 1 ? '' : 's'})`
                     : ''}
                   {isAnomaly ? ` (${sector.anomaly!.kind} anomaly${isBarrier ? ' - one-way' : ''})` : ''}
                   {isBase ? ' (starbase)' : ''}
+                  {isStarHazard ? ' (stellar hazard)' : ''}
                   {!isKnown ? ' (unscanned)' : ''}
                 </title>
               </path>
