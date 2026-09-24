@@ -3,7 +3,14 @@ import { barrier } from '../graph/anomalies'
 import type { NodeId } from '../graph/UndoGraph'
 import { pickGateDestination } from './anomalyEffects'
 import { sectorId } from './cartography'
-import { createGalaxy, disengageWarp, engageWarp, impulseNeighbors, type CreateGalaxyOptions } from './galaxy'
+import {
+  createGalaxy,
+  disengageWarp,
+  engageWarp,
+  impulseNeighbors,
+  randomHomeSector,
+  type CreateGalaxyOptions,
+} from './galaxy'
 import {
   HOSTILE_QUOTA,
   isStranded,
@@ -71,8 +78,13 @@ export interface HuntState {
  * a mutation (move, warp, undo) changes what the graph reports.
  */
 export function useGalaxy(options?: CreateGalaxyOptions) {
-  const galaxy = useMemo(() => createGalaxy(options), [])
-  const home = sectorId(options?.homeSector?.region ?? 0, options?.homeSector?.ring ?? 0)
+  // A caller-supplied homeSector is honored as-is (tests rely on this for a
+  // deterministic start); otherwise a fresh mission starts somewhere new
+  // each time. Either way, createGalaxy's own home-exclusion logic keeps
+  // whichever sector this resolves to clear of hostiles/anomalies/starbases.
+  const homeSector = useMemo(() => options?.homeSector ?? randomHomeSector(options?.rng), [])
+  const galaxy = useMemo(() => createGalaxy({ ...options, homeSector }), [])
+  const home = sectorId(homeSector.region, homeSector.ring)
   const [, setVersion] = useState(0)
   const [state, setState] = useState<HuntState>({
     position: home,

@@ -6,6 +6,7 @@ import {
   disengageWarp,
   engageWarp,
   MAX_HOSTILES_PER_SECTOR,
+  randomHomeSector,
   WARP_RADIUS,
   type SectorData,
 } from './galaxy'
@@ -212,6 +213,41 @@ describe('warp drive', () => {
   it('disengaging with no warp engaged is a no-op', () => {
     const galaxy = createGalaxy()
     expect(disengageWarp(galaxy)).toBe(false)
+  })
+})
+
+describe('randomHomeSector', () => {
+  it('picks the innermost ring, first region at rng 0', () => {
+    expect(randomHomeSector(() => 0)).toEqual({ region: 0, ring: 0 })
+  })
+
+  it('picks the outermost ring, last region in it as rng approaches 1', () => {
+    const lastRing = RING_NAMES.length - 1
+    expect(randomHomeSector(() => 0.999999)).toEqual({
+      region: sectorsInRing(lastRing, RING_NAMES.length) - 1,
+      ring: lastRing,
+    })
+  })
+
+  it("scales region to its own ring's angular resolution, not the baseline count", () => {
+    // First call picks ring 0 (fewer regions than baseline); second picks
+    // region 0.9 of the way through - must scale to ring 0's own, smaller
+    // count rather than the 16-region baseline.
+    const calls = [0, 0.9]
+    let i = 0
+    const result = randomHomeSector(() => calls[i++])
+    const ring0Count = sectorsInRing(0, RING_NAMES.length)
+    expect(result.ring).toBe(0)
+    expect(result.region).toBe(Math.floor(0.9 * ring0Count))
+    expect(result.region).toBeLessThan(ring0Count)
+  })
+
+  it('defaults to Math.random when no rng is given', () => {
+    const result = randomHomeSector()
+    expect(result.ring).toBeGreaterThanOrEqual(0)
+    expect(result.ring).toBeLessThan(RING_NAMES.length)
+    expect(result.region).toBeGreaterThanOrEqual(0)
+    expect(result.region).toBeLessThan(sectorsInRing(result.ring, RING_NAMES.length))
   })
 })
 

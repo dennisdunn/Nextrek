@@ -70,6 +70,21 @@ export function impulseNeighbors(id: NodeId): NodeId[] {
     .map((e) => e.to)
 }
 
+/**
+ * A uniformly random valid sector - region picked within whatever angular
+ * resolution its ring actually has (see cartography.ts's sectorsInRing),
+ * not the baseline count. Used to place the player somewhere new each
+ * mission rather than always the same fixed sector; createGalaxy's own
+ * home-exclusion logic (see the `isHome` checks below) takes care of
+ * keeping whichever sector this picks free of hostiles/anomalies/starbases.
+ */
+export function randomHomeSector(rng: () => number = Math.random): { region: number; ring: number } {
+  const totalRings = RING_NAMES.length
+  const ring = Math.floor(rng() * totalRings)
+  const region = Math.floor(rng() * sectorsInRing(ring, totalRings))
+  return { region, ring }
+}
+
 export interface CreateGalaxyOptions {
   /** Fraction of non-home sectors seeded with a hostile, in [0, 1]. */
   hostileDensity?: number
