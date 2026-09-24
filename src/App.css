@@ -202,6 +202,11 @@
 }
 
 .controls-panel .panel__body {
+  /* The generic .panel__body's 16px horizontal padding barely leaves room
+     for "Subspace" once the button's own border/padding are subtracted from
+     a 104px-wide panel - narrowed here instead of widening the panel itself. */
+  padding-left: 10px;
+  padding-right: 10px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -210,8 +215,7 @@
 
 .controls-panel button {
   width: 100%;
-  /* Right padding is a touch larger than left - the left border already eats into that side's own visual margin. */
-  padding: 12px 10px 12px 8px;
+  padding: 12px 8px;
   font-size: 13px;
   border-left-width: 4px;
   border-left-style: solid;
