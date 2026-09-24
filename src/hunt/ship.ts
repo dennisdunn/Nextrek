@@ -2,6 +2,9 @@ export const STARTING_ENERGY = 1000
 export const MOVE_COST_NORMAL = 10
 export const WARP_ENGAGE_COST = 50
 
+/** Torpedoes are a physical inventory, not energy - a limited, game-wide supply, replenished only at a starbase. */
+export const STARTING_TORPEDOES = 10
+
 // A warp jump's cost scales with how far it actually travels (in impulse-
 // hop distance - see warpNetwork.ts): a flat per-jump base plus a rate per
 // sector covered. That keeps a 1-sector warp hop pointless (base cost

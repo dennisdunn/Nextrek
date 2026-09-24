@@ -50,14 +50,27 @@ export function refund(leftoverShields: number, leftoverPhasers: number, pools: 
 }
 
 /**
- * The five ship systems combat can knock around. Each maps onto a control
+ * The six ship systems combat can knock around. Each maps onto a control
  * the player already uses - warp, the shield/phaser sliders, ordinary
- * movement, and the two sensor scans - rather than introducing anything
- * new to manage. Torpedo tubes will join this list once torpedoes exist.
+ * movement, the two sensor scans, and torpedoes - rather than introducing
+ * anything new to manage.
  */
-export type ShipSystem = 'warpDrive' | 'shieldGenerator' | 'phaserArray' | 'impulseEngines' | 'sensors'
+export type ShipSystem =
+  | 'warpDrive'
+  | 'shieldGenerator'
+  | 'phaserArray'
+  | 'impulseEngines'
+  | 'sensors'
+  | 'torpedoTubes'
 
-const SHIP_SYSTEMS: ShipSystem[] = ['warpDrive', 'shieldGenerator', 'phaserArray', 'impulseEngines', 'sensors']
+const SHIP_SYSTEMS: ShipSystem[] = [
+  'warpDrive',
+  'shieldGenerator',
+  'phaserArray',
+  'impulseEngines',
+  'sensors',
+  'torpedoTubes',
+]
 
 export const SHIP_SYSTEM_LABEL: Record<ShipSystem, string> = {
   warpDrive: 'Warp drive',
@@ -65,13 +78,21 @@ export const SHIP_SYSTEM_LABEL: Record<ShipSystem, string> = {
   phaserArray: 'Phaser array',
   impulseEngines: 'Impulse engines',
   sensors: 'Sensors',
+  torpedoTubes: 'Torpedo tubes',
 }
 
 /** Health, 0-100, for each ship system - independent of the energy pools above and of any single encounter's hull. */
 export type SubsystemHealth = Record<ShipSystem, number>
 
 export function fullSubsystemHealth(): SubsystemHealth {
-  return { warpDrive: 100, shieldGenerator: 100, phaserArray: 100, impulseEngines: 100, sensors: 100 }
+  return {
+    warpDrive: 100,
+    shieldGenerator: 100,
+    phaserArray: 100,
+    impulseEngines: 100,
+    sensors: 100,
+    torpedoTubes: 100,
+  }
 }
 
 /** Fraction of full capability a system still delivers at this health, in [0, 1] - 0 means fully offline. */

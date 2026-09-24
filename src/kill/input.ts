@@ -5,10 +5,11 @@ export interface InputState {
   right: boolean
   thrust: boolean
   fire: boolean
+  torpedo: boolean
 }
 
 export function createInputState(): InputState {
-  return { left: false, right: false, thrust: false, fire: false }
+  return { left: false, right: false, thrust: false, fire: false, torpedo: false }
 }
 
 const KEY_MAP: Record<string, keyof InputState> = {
@@ -22,6 +23,9 @@ const KEY_MAP: Record<string, keyof InputState> = {
   w: 'thrust',
   W: 'thrust',
   ' ': 'fire',
+  Enter: 'torpedo',
+  t: 'torpedo',
+  T: 'torpedo',
 }
 
 /** Wire keyboard events into a mutable InputState. Returns an unsubscribe function. */

@@ -103,6 +103,8 @@ export function HuntPhase({
               hostileHealth={encounter.hostileHealth}
               shieldLevel={state.energy.shields}
               phaserLevel={state.energy.phasers}
+              torpedoesRemaining={state.torpedoes}
+              torpedoTubesHealth={state.subsystems.torpedoTubes}
               paused={activeTab !== 'tactical'}
               onResolved={onCombatResolved}
               onLiveUpdate={onLiveCombatUpdate}
@@ -115,6 +117,7 @@ export function HuntPhase({
         <EngineeringPanel
           energy={state.energy}
           subsystems={state.subsystems}
+          torpedoes={state.torpedoes}
           warpEngaged={state.warpEngaged}
           warpLocked={Boolean(encounter)}
           onToggleWarp={toggleWarp}

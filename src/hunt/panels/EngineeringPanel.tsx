@@ -5,6 +5,8 @@ import { Panel } from './Panel'
 export interface EngineeringPanelProps {
   energy: EnergyPools
   subsystems: SubsystemHealth
+  /** Game-wide torpedo inventory - visible here since Tactical only exists during an active encounter. */
+  torpedoes: number
   warpEngaged: boolean
   /** True during an active encounter - warp can't be used to break off a fight. */
   warpLocked: boolean
@@ -15,6 +17,7 @@ export interface EngineeringPanelProps {
 export function EngineeringPanel({
   energy,
   subsystems,
+  torpedoes,
   warpEngaged,
   warpLocked,
   onToggleWarp,
@@ -42,6 +45,11 @@ export function EngineeringPanel({
         />
       </div>
 
+      <div className="readout-row">
+        <span>Torpedoes</span>
+        <span>{torpedoes}</span>
+      </div>
+
       <dl className="readout system-status">
         <dt>Warp drive</dt>
         <dd>
@@ -58,6 +66,10 @@ export function EngineeringPanel({
         <dt>Impulse engines</dt>
         <dd>
           <span className={systemAnnunciatorClass(subsystems.impulseEngines)}>{Math.round(subsystems.impulseEngines)}%</span>
+        </dd>
+        <dt>Torpedo tubes</dt>
+        <dd>
+          <span className={systemAnnunciatorClass(subsystems.torpedoTubes)}>{Math.round(subsystems.torpedoTubes)}%</span>
         </dd>
       </dl>
 

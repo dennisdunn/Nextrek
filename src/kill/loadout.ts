@@ -26,6 +26,14 @@ export const PHASER_COST_PER_SHOT = 5
 /** Default hull health for a hostile that's never been engaged before (see galaxy.ts's SectorData.hostileHealth). */
 export const HOSTILE_HULL_HEALTH = 40
 
+// Torpedoes: a scarce, locked-on secondary weapon - much harder-hitting
+// than a phaser bolt, slower, and on its own cooldown, in exchange for
+// drawing down a game-wide inventory instead of shield/phaser energy.
+export const TORPEDO_DAMAGE = 60
+export const TORPEDO_SPEED = 180
+export const TORPEDO_TTL_MS = 3000
+export const TORPEDO_COOLDOWN_MS = 1500
+
 export function loadoutFromEnergy(shieldLevel: number, phaserLevel: number): ShipLoadout {
   const shields = Math.max(0, shieldLevel)
   const phasers = Math.max(0, phaserLevel)

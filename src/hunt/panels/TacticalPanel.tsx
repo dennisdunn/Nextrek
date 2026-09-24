@@ -6,6 +6,8 @@ export interface TacticalPanelProps {
   hostileHealth: number
   shieldLevel: number
   phaserLevel: number
+  torpedoesRemaining: number
+  torpedoTubesHealth: number
   paused: boolean
   onResolved: (result: CombatResult) => void
   onLiveUpdate: (state: LiveCombatState) => void
@@ -16,6 +18,8 @@ export function TacticalPanel({
   hostileHealth,
   shieldLevel,
   phaserLevel,
+  torpedoesRemaining,
+  torpedoTubesHealth,
   paused,
   onResolved,
   onLiveUpdate,
@@ -27,6 +31,8 @@ export function TacticalPanel({
         hostileHealth={hostileHealth}
         shieldLevel={shieldLevel}
         phaserLevel={phaserLevel}
+        torpedoesRemaining={torpedoesRemaining}
+        torpedoTubesHealth={torpedoTubesHealth}
         paused={paused}
         onResolved={onResolved}
         onLiveUpdate={onLiveUpdate}

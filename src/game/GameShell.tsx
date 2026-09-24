@@ -18,7 +18,7 @@ import { HOSTILE_HULL_HEALTH } from '../kill/loadout'
  */
 export function GameShell() {
   const controller = useGalaxy()
-  const { galaxy, moveTo, resolveEncounter } = controller
+  const { galaxy, state, moveTo, resolveEncounter } = controller
   const [encounter, setEncounter] = useState<Encounter | null>(null)
   const [activeTab, setActiveTab] = useState<BridgeTab>('sciences')
   // Updated every tick by KillPhase, out-of-band from React state - a fight
@@ -33,10 +33,11 @@ export function GameShell() {
       leftoverShieldEnergy: number,
       leftoverPhaserEnergy: number,
       hullDamageTaken: number,
+      torpedoesRemaining: number,
     ) => {
       const sector = galaxy.getNode(sectorId)
       if (sector) galaxy.setNode(sectorId, applyCombatResult(sector, hostileHealthRemaining))
-      resolveEncounter(hullDamageTaken, leftoverShieldEnergy, leftoverPhaserEnergy)
+      resolveEncounter(hullDamageTaken, leftoverShieldEnergy, leftoverPhaserEnergy, torpedoesRemaining)
       liveCombatRef.current = null
       setEncounter(null)
       setActiveTab('sciences')
@@ -64,6 +65,7 @@ export function GameShell() {
           live?.shieldEnergy ?? 0,
           live?.phaserEnergy ?? 0,
           live?.hullDamageTaken ?? 0,
+          live?.torpedoesRemaining ?? state.torpedoes,
         )
       }
 
@@ -74,7 +76,7 @@ export function GameShell() {
         setActiveTab('tactical')
       }
     },
-    [moveTo, galaxy, encounter, disengage],
+    [moveTo, galaxy, encounter, disengage, state.torpedoes],
   )
 
   const handleResolved = useCallback(
@@ -86,6 +88,7 @@ export function GameShell() {
         result.leftoverShieldEnergy,
         result.leftoverPhaserEnergy,
         result.hullDamageTaken,
+        result.torpedoesRemaining,
       )
     },
     [encounter, disengage],

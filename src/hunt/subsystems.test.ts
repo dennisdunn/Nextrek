@@ -114,7 +114,7 @@ describe('applySubsystemWear', () => {
 
   it('degrades exactly one system by the full damage amount', () => {
     const subsystems = fullSubsystemHealth()
-    const result = applySubsystemWear(subsystems, 30, () => 0.41) // picks the 3rd of 5 systems
+    const result = applySubsystemWear(subsystems, 30, () => 0.41) // picks the 3rd of 6 systems
     expect(result.damagedSystem).toBe('phaserArray')
     expect(result.subsystems.phaserArray).toBe(70)
     // every other system is untouched
@@ -122,6 +122,14 @@ describe('applySubsystemWear', () => {
     expect(result.subsystems.shieldGenerator).toBe(100)
     expect(result.subsystems.impulseEngines).toBe(100)
     expect(result.subsystems.sensors).toBe(100)
+    expect(result.subsystems.torpedoTubes).toBe(100)
+  })
+
+  it('can pick torpedo tubes, the last system in the list', () => {
+    const subsystems = fullSubsystemHealth()
+    const result = applySubsystemWear(subsystems, 15, () => 0.99)
+    expect(result.damagedSystem).toBe('torpedoTubes')
+    expect(result.subsystems.torpedoTubes).toBe(85)
   })
 
   it('never drops a system below zero', () => {

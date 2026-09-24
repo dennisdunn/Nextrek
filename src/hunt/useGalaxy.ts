@@ -11,6 +11,7 @@ import {
   longRangeScanCost,
   moveCost,
   STARTING_ENERGY,
+  STARTING_TORPEDOES,
   subspaceScanCost,
   WARP_ENGAGE_COST,
 } from './ship'
@@ -34,6 +35,8 @@ export interface HuntState {
   stardate: number
   energy: EnergyPools
   subsystems: SubsystemHealth
+  /** Game-wide torpedo inventory - a limited physical supply, not energy, restocked only at a starbase. */
+  torpedoes: number
   visited: Set<NodeId>
   /** Sectors a long-range scan has revealed - what the strategic map shows, beyond what's been visited. */
   scanned: Set<NodeId>
@@ -66,6 +69,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     stardate: STARTING_STARDATE,
     energy: { reserve: STARTING_ENERGY, shields: 0, phasers: 0 },
     subsystems: fullSubsystemHealth(),
+    torpedoes: STARTING_TORPEDOES,
     visited: new Set([home]),
     scanned: new Set(),
     scannedAnomalies: new Set(),
@@ -175,13 +179,14 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
           ? { reserve: STARTING_ENERGY, shields: 0, phasers: 0 }
           : { ...s.energy, reserve: s.energy.reserve - cost },
         subsystems: docked ? fullSubsystemHealth() : s.subsystems,
+        torpedoes: docked ? STARTING_TORPEDOES : s.torpedoes,
         visited: new Set(s.visited).add(target).add(landedAt),
         warpEnteredBarrier: nextWarpEnteredBarrier,
       }))
       appendLog(message)
       if (docked) {
         appendLog(
-          `Docked at ${landedSector!.name} starbase - shields, phasers, and reserves fully restored; all systems repaired.`,
+          `Docked at ${landedSector!.name} starbase - shields, phasers, and reserves fully restored; all systems repaired; torpedo bay restocked.`,
         )
       }
       if (leavingWarpEnteredBarrier) {
@@ -250,7 +255,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
    * setState calls risked one clobbering the other's result.
    */
   const resolveEncounter = useCallback(
-    (hullDamageTaken: number, leftoverShieldEnergy: number, leftoverPhaserEnergy: number) => {
+    (hullDamageTaken: number, leftoverShieldEnergy: number, leftoverPhaserEnergy: number, torpedoesRemaining: number) => {
       const { subsystems, damagedSystem } = applySubsystemWear(state.subsystems, hullDamageTaken)
       const refunded = refund(leftoverShieldEnergy, leftoverPhaserEnergy, state.energy)
       // A shield generator or phaser array just damaged this same encounter
@@ -264,7 +269,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
         Math.min(refunded.phasers, phaserCap),
         phaserCap,
       )
-      setState((s) => ({ ...s, subsystems, energy }))
+      setState((s) => ({ ...s, subsystems, energy, torpedoes: torpedoesRemaining }))
 
       const recovered = Math.round(Math.max(0, leftoverShieldEnergy + leftoverPhaserEnergy) * REFUND_EFFICIENCY)
       appendLog(

@@ -84,11 +84,13 @@ export interface FireOptions {
   damage?: number
   ttl?: number
   radius?: number
+  /** Entity id to steer toward each tick (see systems/homing.ts) - a torpedo lock, absent for an ordinary phaser bolt. */
+  homingTarget?: number
 }
 
 export function spawnProjectile(world: KillWorld, opts: FireOptions): number {
   const eid = addEntity(world)
-  const { Position, Velocity, Radius, Weapon, Owner, Ttl } = world.components
+  const { Position, Velocity, Radius, Weapon, Owner, Ttl, Homing, HomingTarget } = world.components
   addComponent(world, eid, Position)
   addComponent(world, eid, Velocity)
   addComponent(world, eid, Radius)
@@ -105,5 +107,11 @@ export function spawnProjectile(world: KillWorld, opts: FireOptions): number {
   Weapon[eid] = opts.damage ?? 20
   Owner[eid] = opts.owner
   Ttl[eid] = opts.ttl ?? 1200
+  if (opts.homingTarget !== undefined) {
+    addComponent(world, eid, Homing)
+    addComponent(world, eid, HomingTarget)
+    Homing[eid] = 1
+    HomingTarget[eid] = opts.homingTarget
+  }
   return eid
 }

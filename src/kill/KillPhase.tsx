@@ -1,11 +1,22 @@
 import { entityExists } from 'bitecs'
 import { useEffect, useRef } from 'react'
 import { bindInput, createInputState, inputSystem } from './input'
-import { BASE_HULL_HEALTH, BASE_WEAPON_DAMAGE, loadoutFromEnergy, PHASER_COST_PER_SHOT, PHASER_DAMAGE_PER_LEVEL } from './loadout'
+import {
+  BASE_HULL_HEALTH,
+  BASE_WEAPON_DAMAGE,
+  loadoutFromEnergy,
+  PHASER_COST_PER_SHOT,
+  PHASER_DAMAGE_PER_LEVEL,
+  TORPEDO_COOLDOWN_MS,
+  TORPEDO_DAMAGE,
+  TORPEDO_SPEED,
+  TORPEDO_TTL_MS,
+} from './loadout'
 import { spawnHostile, spawnPlayer, spawnProjectile } from './spawn'
 import { ageoutSystem } from './systems/ageout'
 import { boundarySystem } from './systems/boundary'
 import { collisionSystem } from './systems/collision'
+import { homingSystem } from './systems/homing'
 import { hostileAiSystem } from './systems/hostileAi'
 import { physicsSystem } from './systems/physics'
 import { pruneSystem } from './systems/prune'
@@ -23,6 +34,8 @@ export interface CombatResult {
   hostileHealthRemaining: number
   /** Hull damage taken this encounter - what the hunt phase converts into ship-system wear (see subsystems.ts). */
   hullDamageTaken: number
+  /** How many torpedoes are left in the game-wide inventory after this encounter. */
+  torpedoesRemaining: number
 }
 
 /** Reported every tick so the hunt phase can persist a fled hostile's damage without waiting for onResolved. */
@@ -31,6 +44,7 @@ export interface LiveCombatState {
   shieldEnergy: number
   phaserEnergy: number
   hullDamageTaken: number
+  torpedoesRemaining: number
 }
 
 export interface KillPhaseProps {
@@ -41,6 +55,10 @@ export interface KillPhaseProps {
   /** Engineering's shield/phaser allocation (0-100), live for the duration of the fight, not just at the start. */
   shieldLevel: number
   phaserLevel: number
+  /** Torpedoes left in the game-wide inventory at the start of this encounter. */
+  torpedoesRemaining: number
+  /** Health of the torpedo tubes (0-100) - 0 means offline, otherwise scales the reload cooldown. */
+  torpedoTubesHealth: number
   /** True whenever Tactical isn't the visible tab - freezes the fight rather than running it out of sight. */
   paused: boolean
   onResolved: (result: CombatResult) => void
@@ -52,11 +70,23 @@ const HEIGHT = 480
 const FIRE_COOLDOWN_MS = 250
 const MAX_FRAME_MS = 50 // clamp long pauses (tab switch) so physics doesn't jump
 
+/**
+ * Mirrors hunt/subsystems.ts's degradedCostMultiplier (1x at full health, up
+ * to 2x fully offline) - duplicated locally rather than imported, since
+ * kill/ and hunt/ are kept independent of each other (see game/GameShell.tsx,
+ * the one intentional bridge between the two).
+ */
+function degradedCooldownMultiplier(health: number): number {
+  return 2 - Math.max(0, Math.min(100, health)) / 100
+}
+
 export function KillPhase({
   encounterId,
   hostileHealth,
   shieldLevel,
   phaserLevel,
+  torpedoesRemaining,
+  torpedoTubesHealth,
   paused,
   onResolved,
   onLiveUpdate,
@@ -113,6 +143,8 @@ export function KillPhase({
     let raf = 0
     let resolved = false
     let fireCooldown = 0
+    let torpedoCooldown = 0
+    let torpedoesLeft = torpedoesRemaining
     // Last known values before the entity might vanish (defeat removes it) -
     // what gets reported back as "leftover" for the hunt phase to refund.
     let leftoverShieldEnergy = startingLoadout.shieldEnergy
@@ -136,6 +168,7 @@ export function KillPhase({
       world.time.elapsed += delta
       world.time.then = now
       fireCooldown = Math.max(0, fireCooldown - delta)
+      torpedoCooldown = Math.max(0, torpedoCooldown - delta)
 
       // Tracks the live phaser allocation, not just what it was when the fight started.
       const weaponDamage = BASE_WEAPON_DAMAGE + Math.max(0, levelsRef.current.phaserLevel) * PHASER_DAMAGE_PER_LEVEL
@@ -158,9 +191,30 @@ export function KillPhase({
             damage: weaponDamage,
           })
         }
+        if (
+          input.torpedo &&
+          torpedoCooldown === 0 &&
+          torpedoesLeft > 0 &&
+          torpedoTubesHealth > 0 &&
+          entityExists(world, hostileEid)
+        ) {
+          torpedoCooldown = TORPEDO_COOLDOWN_MS * degradedCooldownMultiplier(torpedoTubesHealth)
+          torpedoesLeft -= 1
+          spawnProjectile(world, {
+            x: world.components.Position.x[playerEid],
+            y: world.components.Position.y[playerEid],
+            heading: world.components.Heading[playerEid],
+            owner: playerEid,
+            damage: TORPEDO_DAMAGE,
+            speed: TORPEDO_SPEED,
+            ttl: TORPEDO_TTL_MS,
+            homingTarget: hostileEid,
+          })
+        }
       }
 
       hostileAiSystem(world, playerEid)
+      homingSystem(world)
       physicsSystem(world)
       boundarySystem(world, { width: WIDTH, height: HEIGHT })
       collisionSystem(world)
@@ -184,19 +238,27 @@ export function KillPhase({
         shieldEnergy: Math.max(0, leftoverShieldEnergy),
         phaserEnergy: Math.max(0, leftoverPhaserEnergy),
         hullDamageTaken,
+        torpedoesRemaining: torpedoesLeft,
       })
 
       if (hudRef.current) {
         const hull = entityExists(world, playerEid)
           ? Math.max(0, Math.round(world.components.Health[playerEid]))
           : 0
-        hudRef.current.textContent = `Hull ${hull}/${Math.round(BASE_HULL_HEALTH)} · Hostile hull ${Math.round(hostileHealthRemaining)}`
+        hudRef.current.textContent = `Hull ${hull}/${Math.round(BASE_HULL_HEALTH)} · Hostile hull ${Math.round(hostileHealthRemaining)} · Torpedoes ${torpedoesLeft}`
       }
 
       if (!resolved) {
         if (!entityExists(world, playerEid)) {
           resolved = true
-          onResolved({ outcome: 'defeat', leftoverShieldEnergy, leftoverPhaserEnergy, hostileHealthRemaining, hullDamageTaken })
+          onResolved({
+            outcome: 'defeat',
+            leftoverShieldEnergy,
+            leftoverPhaserEnergy,
+            hostileHealthRemaining,
+            hullDamageTaken,
+            torpedoesRemaining: torpedoesLeft,
+          })
         } else if (hostileHealthRemaining <= 0) {
           resolved = true
           onResolved({
@@ -205,6 +267,7 @@ export function KillPhase({
             leftoverPhaserEnergy,
             hostileHealthRemaining: 0,
             hullDamageTaken,
+            torpedoesRemaining: torpedoesLeft,
           })
         }
       }
@@ -219,22 +282,23 @@ export function KillPhase({
       worldRef.current = null
       playerEidRef.current = null
     }
-    // Deliberately keyed on encounterId alone (plus the hostile's starting
-    // health, fixed for the encounter's lifetime) - shieldLevel/phaserLevel
-    // changes are live-synced above instead of rebuilding the world, and
-    // hostileHealth's initial value is read via levelsRef/startingLoadout
-    // at mount time, not tracked as a dependency.
+    // Deliberately keyed on encounterId, hostileHealth, torpedoesRemaining,
+    // and torpedoTubesHealth - all fixed for the encounter's lifetime, none
+    // of them ever change mid-fight (unlike shieldLevel/phaserLevel, which
+    // are live-synced above instead of rebuilding the world).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [encounterId, hostileHealth, onResolved, onLiveUpdate])
+  }, [encounterId, hostileHealth, torpedoesRemaining, torpedoTubesHealth, onResolved, onLiveUpdate])
 
   return (
     <div className="kill-phase">
       <p ref={hudRef} className="kill-hud">
-        Hull {Math.round(BASE_HULL_HEALTH)}/{Math.round(BASE_HULL_HEALTH)} · Hostile hull {Math.round(hostileHealth)}
+        Hull {Math.round(BASE_HULL_HEALTH)}/{Math.round(BASE_HULL_HEALTH)} · Hostile hull {Math.round(hostileHealth)} ·
+        Torpedoes {torpedoesRemaining}
       </p>
       <canvas ref={canvasRef} width={WIDTH} height={HEIGHT} className="kill-canvas" />
       <p className="kill-hint">
-        Arrows / WASD to steer and thrust, Space to fire. Switch to Sciences and pick a sector to disengage.
+        Arrows / WASD to steer and thrust, Space to fire, Enter/T for a homing torpedo. Switch to Sciences and pick a
+        sector to disengage.
       </p>
     </div>
   )

@@ -27,6 +27,10 @@ export function createKillWorld() {
       PhaserEnergy: [] as number[],
       /** Per-entity cooldown (ms) until an AI shooter may fire again. */
       FireCooldown: [] as number[],
+      /** Tags a projectile as a homing torpedo, steered each tick by systems/homing.ts. */
+      Homing: [] as number[],
+      /** Entity id a homing projectile steers toward. */
+      HomingTarget: [] as number[],
     },
     time: {
       delta: 0,
