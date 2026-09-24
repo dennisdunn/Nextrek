@@ -30,6 +30,11 @@
     flex-direction: column;
     overflow-y: auto;
   }
+
+  /* flex-basis tracks the main axis - a fixed 104px would flatten the stacked buttons instead of sizing to their content. */
+  .controls-panel {
+    flex: 0 0 auto;
+  }
 }
 
 .hunt-sidebar {
@@ -39,7 +44,33 @@
   flex: 1 1 300px;
   min-width: 280px;
   min-height: 0;
-  overflow-y: auto;
+  overflow-y: hidden;
+}
+
+/*
+ * Controls, Status, and Engineering are all a fixed, content-sized height -
+ * only Comms is expected to grow past the fold, so it's the one panel that
+ * claims the sidebar's leftover space and scrolls internally (see .log),
+ * rather than the whole sidebar needing to scroll as a unit.
+ */
+.panel--comms {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel--comms .panel__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel--comms .log {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
 }
 
 .panel {
@@ -76,6 +107,10 @@
   border-left: 4px solid #6fffb0;
 }
 
+.panel--controls .panel__title {
+  border-left: 4px solid #9aa5b8;
+}
+
 .panel__body {
   padding: 16px;
 }
@@ -88,50 +123,125 @@
   min-height: 0;
 }
 
-.station-tabs {
+.panel--sciences {
+  flex: 1;
   display: flex;
-  gap: 4px;
+  flex-direction: column;
+  min-height: 0;
 }
 
-.tab-button {
+.panel--sciences .panel__body {
   flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * The Sciences/Tactical and Status/Damage-control station slots put their
+ * tab bar directly in the header instead of a separate row above the panel -
+ * the plain title stays in the DOM (for a11y/consistency) but is hidden,
+ * and .header-toggle takes its place visually.
+ */
+.panel--has-toggle > .panel__title {
+  display: none;
+}
+
+.header-toggle {
+  display: flex;
+}
+
+.header-toggle button {
+  flex: 1;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  opacity: 0.55;
   font-family: var(--mono);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  padding: 6px 12px;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--text);
+  padding: 8px 16px;
+  border-bottom: 3px solid transparent;
   cursor: pointer;
 }
 
-.tab-button--active {
+.header-toggle button.active {
+  opacity: 1;
   color: var(--text-h);
-  border-color: var(--danger);
-  background: var(--danger-bg);
+  background: var(--panel-bg);
 }
 
-.panel--sciences,
-.panel--tactical {
-  flex: 1;
+.header-toggle--sciences button.active {
+  border-bottom-color: #6fffb0;
+}
+
+.header-toggle--sciences button.tab-tactical.active {
+  border-bottom-color: var(--danger);
+}
+
+.header-toggle--status button.active {
+  border-bottom-color: var(--accent);
+}
+
+.header-toggle--status button.tab-damage.active {
+  border-bottom-color: #c084fc;
+}
+
+/*
+ * Controls: every player-initiated action (scan/warp), grouped in one
+ * left-hand column instead of scattered across the panels they act on -
+ * each button still colored/bordered to match its own station.
+ */
+.controls-panel {
+  flex: 0 0 104px;
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 
-.panel--sciences .panel__body,
-.panel--tactical .panel__body {
-  flex: 1;
-  min-height: 0;
+.controls-panel .panel__body {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+  flex: 1;
 }
 
-.panel--tactical .panel__title {
-  border-left: 4px solid var(--danger);
+.controls-panel button {
+  width: 100%;
+  padding: 12px 8px;
+  font-size: 13px;
+  border-left-width: 4px;
+  border-left-style: solid;
+}
+
+.controls-panel .btn-sci {
+  border-left-color: #6fffb0;
+  background: rgba(111, 255, 176, 0.08);
+}
+
+.controls-panel .btn-sci:hover {
+  background: rgba(111, 255, 176, 0.16);
+}
+
+.controls-panel .btn-eng {
+  border-left-color: #c084fc;
+  background: rgba(192, 132, 252, 0.08);
+}
+
+.controls-panel .btn-eng:hover {
+  background: rgba(192, 132, 252, 0.16);
+}
+
+.controls-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 4px 0;
+}
+
+.controls-spacer {
+  flex: 1;
 }
 
 .galaxy-map {
@@ -293,6 +403,44 @@
   text-align: right;
 }
 
+/* Two label:value pairs per row instead of one - the space-reclaiming move that keeps Status/Damage-control/Engineering from clipping past the fold. */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 20px;
+  margin: 0 0 12px;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.stat__label {
+  display: block;
+  color: var(--text);
+  opacity: 0.7;
+  font-size: 12px;
+}
+
+.stat__value {
+  display: block;
+  color: var(--text-h);
+  margin-top: 2px;
+}
+
+.tactical-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.slider-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 20px;
+}
+
 .annunciator {
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -334,14 +482,6 @@
   background: rgba(255, 209, 102, 0.12);
 }
 
-.readout-row {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--mono);
-  font-size: 13px;
-  margin-bottom: 4px;
-}
-
 .bar {
   height: 6px;
   border-radius: 3px;
@@ -374,19 +514,6 @@
   accent-color: #c084fc;
 }
 
-.scan-controls {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-
-.warp-toggle {
-  display: block;
-  margin: 12px auto 0;
-}
-
 .log {
   list-style: none;
   padding: 0;
@@ -412,6 +539,10 @@
 }
 
 .log__line--anomaly {
+  color: #ffd166;
+}
+
+.log__line--hostile {
   color: #ffd166;
 }
 

@@ -1,5 +1,4 @@
 import { HOSTILE_QUOTA, stardateRemaining, type AlertLevel } from '../mission'
-import { Panel } from './Panel'
 
 export interface StatusPanelProps {
   sectorName: string
@@ -14,32 +13,34 @@ const ALERT_LABEL: Record<AlertLevel, string> = {
   red: 'Red',
 }
 
-const ALERT_CAPTION: Record<AlertLevel, string | null> = {
-  green: null,
-  yellow: 'Hostiles detected nearby.',
-  red: 'Hostile contact - this sector.',
-}
-
+/** Body content for the Status view - hosted inside the merged Status/Damage-control panel in HuntPhase.tsx. */
 export function StatusPanel({ sectorName, stardate, hostilesDestroyed, alert }: StatusPanelProps) {
   return (
-    <Panel title="Status" accent="status">
-      <dl className="readout">
-        <dt>Location</dt>
-        <dd>{sectorName}</dd>
-        <dt>Stardate</dt>
-        <dd>{stardate.toFixed(1)}</dd>
-        <dt>Mission clock</dt>
-        <dd>{stardateRemaining(stardate).toFixed(1)} left</dd>
-        <dt>Hostiles destroyed</dt>
-        <dd>
-          {hostilesDestroyed} / {HOSTILE_QUOTA}
-        </dd>
-        <dt>Tactical</dt>
-        <dd>
-          <span className={`annunciator annunciator--${alert}`}>{ALERT_LABEL[alert]}</span>
-        </dd>
-      </dl>
-      {ALERT_CAPTION[alert] && <p className={`alert alert--${alert}`}>{ALERT_CAPTION[alert]}</p>}
-    </Panel>
+    <>
+      <div className="stat-grid">
+        <div className="stat">
+          <span className="stat__label">Location</span>
+          <span className="stat__value">{sectorName}</span>
+        </div>
+        <div className="stat">
+          <span className="stat__label">Stardate</span>
+          <span className="stat__value">{stardate.toFixed(1)}</span>
+        </div>
+        <div className="stat">
+          <span className="stat__label">Mission clock</span>
+          <span className="stat__value">{stardateRemaining(stardate).toFixed(1)} left</span>
+        </div>
+        <div className="stat">
+          <span className="stat__label">Hostiles destroyed</span>
+          <span className="stat__value">
+            {hostilesDestroyed} / {HOSTILE_QUOTA}
+          </span>
+        </div>
+      </div>
+      <div className="tactical-row">
+        <span>Tactical</span>
+        <span className={`annunciator annunciator--${alert}`}>{ALERT_LABEL[alert]}</span>
+      </div>
+    </>
   )
 }

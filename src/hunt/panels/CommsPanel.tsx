@@ -5,6 +5,13 @@ export interface CommsPanelProps {
 }
 
 const ANOMALY_MESSAGE = 'Subspace variance detected nearby.'
+const HOSTILE_MESSAGE = 'Hostiles detected nearby.'
+
+function lineClass(line: string): string | undefined {
+  if (line === ANOMALY_MESSAGE) return 'log__line--anomaly'
+  if (line === HOSTILE_MESSAGE) return 'log__line--hostile'
+  return undefined
+}
 
 export function CommsPanel({ log }: CommsPanelProps) {
   return (
@@ -19,7 +26,7 @@ export function CommsPanel({ log }: CommsPanelProps) {
           .map((line, i) => ({ line, i }))
           .reverse()
           .map(({ line, i }) => (
-            <li key={i} className={line === ANOMALY_MESSAGE ? 'log__line--anomaly' : undefined}>
+            <li key={i} className={lineClass(line)}>
               {line}
             </li>
           ))}

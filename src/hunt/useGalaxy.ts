@@ -220,6 +220,9 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
       if (sensedAnomalies(galaxy, landedAt).length > 0) {
         appendLog('Subspace variance detected nearby.')
       }
+      if (sensedHostiles(galaxy, landedAt).length > 0) {
+        appendLog('Hostiles detected nearby.')
+      }
       return landedAt
     },
     [
