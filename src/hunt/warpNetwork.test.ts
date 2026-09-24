@@ -51,7 +51,7 @@ describe('buildWarpEdges', () => {
   })
 
   it('respects a mutated topology - a removed edge shortens reach accordingly', () => {
-    // strip d's only link back to c, simulating a well-style anomaly
+    // strip d's only link back to c, simulating a barrier-style anomaly
     const mutated = chainEdges().filter((e) => !(e.from === 'd' && e.to === 'c'))
     const warp = buildWarpEdges(mutated, IDS, 3)
     // d can still reach forward to e, but never back toward a/b/c

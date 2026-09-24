@@ -16,8 +16,8 @@ export type UndoFn = () => void
  * back to the previous configuration.
  *
  * This is the mechanism behind warp drive (push a fast toroidal edge-set,
- * Undo() to fall back to normal space) and subspace anomalies (chambers,
- * wells, conduits, gates) - see anomalies.ts.
+ * Undo() to fall back to normal space) and subspace anomalies (barriers,
+ * conduits, gates) - see graph/anomalies.ts.
  */
 export class UndoGraph<N = unknown, E = unknown> {
   private nodeStack: ReadonlyMap<NodeId, N>[]

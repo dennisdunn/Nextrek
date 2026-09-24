@@ -1,6 +1,6 @@
 import type { NodeId } from '../graph/UndoGraph'
+import { contains } from '../math/geometryPolar'
 import type { BoundingArc, Polar } from '../math/types'
-import Geometry from '../math/geometry'
 
 // 16 named regions at the "normal" resolution - some rings divide the
 // circle more finely or more coarsely than this (see sectorsInRing), but
@@ -141,7 +141,7 @@ export function getSectorByName(sectors: Sector[], name: string): Sector {
 }
 
 export function getSectorContaining(sectors: Sector[], point: Polar): Sector {
-  const sector = sectors.find((s) => Geometry.Polar.contains(s.arc, point))
+  const sector = sectors.find((s) => contains(s.arc, point))
   if (!sector) throw new Error('point is not contained in any sector')
   return sector
 }

@@ -1,15 +1,8 @@
-import { addComponent, hasComponent, query } from 'bitecs'
+import { hasComponent, query } from 'bitecs'
 import { STAR_DAMAGE_PER_SECOND } from '../../balance'
-import type { KillWorld } from '../world'
+import { markDead, type KillWorld } from '../world'
 
 export { STAR_DAMAGE_PER_SECOND }
-
-function markDead(world: KillWorld, eid: number): void {
-  const { Dead } = world.components
-  if (hasComponent(world, eid, Dead)) return
-  Dead[eid] = 1
-  addComponent(world, eid, Dead)
-}
 
 /**
  * A star hazard doesn't move and can't be destroyed - anything that

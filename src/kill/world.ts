@@ -1,4 +1,4 @@
-import { createWorld } from 'bitecs'
+import { addComponent, createWorld, hasComponent } from 'bitecs'
 
 /**
  * bitECS world for the tactical (Asteroids-style) kill phase. Components
@@ -43,3 +43,11 @@ export function createKillWorld() {
 }
 
 export type KillWorld = ReturnType<typeof createKillWorld>
+
+/** Tag an entity Dead exactly once - pruneSystem removes it at the end of the tick. Idempotent: a no-op if it's already marked. */
+export function markDead(world: KillWorld, eid: number): void {
+  const { Dead } = world.components
+  if (hasComponent(world, eid, Dead)) return
+  Dead[eid] = 1
+  addComponent(world, eid, Dead)
+}

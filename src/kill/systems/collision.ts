@@ -1,12 +1,5 @@
-import { addComponent, hasComponent, query } from 'bitecs'
-import type { KillWorld } from '../world'
-
-function markDead(world: KillWorld, eid: number): void {
-  const { Dead } = world.components
-  if (hasComponent(world, eid, Dead)) return
-  Dead[eid] = 1
-  addComponent(world, eid, Dead)
-}
+import { hasComponent, query } from 'bitecs'
+import { markDead, type KillWorld } from '../world'
 
 /**
  * Projectile (Weapon) vs. hull (Health) collisions - torpedo/phaser hits
