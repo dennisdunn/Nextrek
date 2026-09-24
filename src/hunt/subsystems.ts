@@ -100,13 +100,15 @@ export function systemEfficiency(health: number): number {
   return Math.max(0, Math.min(100, health)) / 100
 }
 
-/** Below this, a system reads as struggling rather than merely "not full" - matches the yellow alert threshold. */
-export const DEGRADED_SYSTEM_THRESHOLD = 50
+/** At or below this, a system reads as critical (red) rather than merely degraded. */
+export const CRITICAL_SYSTEM_THRESHOLD = 40
+/** At or above this, a system reads as fully healthy (green) rather than degraded. */
+export const HEALTHY_SYSTEM_THRESHOLD = 80
 
-/** Annunciator color class for a system readout at this health - shared by Engineering's and Sciences' status rows. */
+/** Annunciator color class for a system readout at this health - used by Damage control's status grid. */
 export function systemAnnunciatorClass(health: number): string {
-  if (health <= 0) return 'annunciator annunciator--red'
-  if (health < DEGRADED_SYSTEM_THRESHOLD) return 'annunciator annunciator--yellow'
+  if (health <= CRITICAL_SYSTEM_THRESHOLD) return 'annunciator annunciator--red'
+  if (health < HEALTHY_SYSTEM_THRESHOLD) return 'annunciator annunciator--yellow'
   return 'annunciator annunciator--green'
 }
 

@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
   allocate,
   applySubsystemWear,
+  CRITICAL_SYSTEM_THRESHOLD,
   degradedCostMultiplier,
   fullSubsystemHealth,
+  HEALTHY_SYSTEM_THRESHOLD,
   refund,
   REFUND_EFFICIENCY,
+  systemAnnunciatorClass,
   systemEfficiency,
 } from './subsystems'
 
@@ -88,6 +91,23 @@ describe('systemEfficiency', () => {
   it('clamps out-of-range health to [0, 100]', () => {
     expect(systemEfficiency(-10)).toBe(0)
     expect(systemEfficiency(150)).toBe(1)
+  })
+})
+
+describe('systemAnnunciatorClass', () => {
+  it('reads red at or below the critical threshold, including fully offline', () => {
+    expect(systemAnnunciatorClass(0)).toBe('annunciator annunciator--red')
+    expect(systemAnnunciatorClass(CRITICAL_SYSTEM_THRESHOLD)).toBe('annunciator annunciator--red')
+  })
+
+  it('reads yellow strictly between the critical and healthy thresholds', () => {
+    expect(systemAnnunciatorClass(CRITICAL_SYSTEM_THRESHOLD + 1)).toBe('annunciator annunciator--yellow')
+    expect(systemAnnunciatorClass(HEALTHY_SYSTEM_THRESHOLD - 1)).toBe('annunciator annunciator--yellow')
+  })
+
+  it('reads green at or above the healthy threshold', () => {
+    expect(systemAnnunciatorClass(HEALTHY_SYSTEM_THRESHOLD)).toBe('annunciator annunciator--green')
+    expect(systemAnnunciatorClass(100)).toBe('annunciator annunciator--green')
   })
 })
 
