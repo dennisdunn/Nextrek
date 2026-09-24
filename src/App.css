@@ -452,3 +452,44 @@
   color: var(--text);
   opacity: 0.8;
 }
+
+.end-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+  padding: 24px;
+}
+
+.end-screen h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.end-screen--victory h1 {
+  color: var(--accent);
+}
+
+.end-screen--defeat h1 {
+  color: var(--danger);
+}
+
+.end-screen p {
+  margin: 0;
+  color: var(--text);
+  max-width: 40ch;
+}
+
+.end-screen__stats {
+  font-size: 15px;
+  min-width: 240px;
+}
+
+.end-screen button {
+  margin-top: 8px;
+  padding: 10px 24px;
+  font-size: 14px;
+}

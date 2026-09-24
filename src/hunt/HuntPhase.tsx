@@ -115,7 +115,12 @@ export function HuntPhase({
         )}
       </div>
       <div className="hunt-sidebar">
-        <StatusPanel sectorName={currentSector?.name ?? 'Unknown sector'} stardate={state.stardate} alert={alert} />
+        <StatusPanel
+          sectorName={currentSector?.name ?? 'Unknown sector'}
+          stardate={state.stardate}
+          hostilesDestroyed={state.hostilesDestroyed}
+          alert={alert}
+        />
         <EngineeringPanel
           energy={state.energy}
           subsystems={state.subsystems}

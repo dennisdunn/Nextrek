@@ -5,6 +5,12 @@ import { HuntPhase, type BridgeTab, type Encounter } from '../hunt/HuntPhase'
 import { useGalaxy } from '../hunt/useGalaxy'
 import type { CombatResult, LiveCombatState } from '../kill/KillPhase'
 import { HOSTILE_HULL_HEALTH } from '../kill/loadout'
+import { EndScreen } from './EndScreen'
+
+export interface GameShellProps {
+  /** Starts a fresh mission - the parent remounts this component (a new galaxy, all state reset) in response. */
+  onNewGame: () => void
+}
 
 /**
  * Phase-transition layer. Owns the galaxy (React/UndoGraph, strategic) and
@@ -14,11 +20,12 @@ import { HOSTILE_HULL_HEALTH } from '../kill/loadout'
  * Unlike the old full-screen takeover, the hunt phase itself never
  * unmounts - Tactical is an embedded, toggle-able station inside it (see
  * HuntPhase.tsx) so Status/Engineering/Comms stay live and usable through
- * a fight.
+ * a fight. Once the mission is decided (see hunt/mission.ts), EndScreen
+ * replaces it outright - there's nothing left to click through to.
  */
-export function GameShell() {
+export function GameShell({ onNewGame }: GameShellProps) {
   const controller = useGalaxy()
-  const { galaxy, state, moveTo, resolveEncounter } = controller
+  const { galaxy, state, status, moveTo, resolveEncounter } = controller
   const [encounter, setEncounter] = useState<Encounter | null>(null)
   const [activeTab, setActiveTab] = useState<BridgeTab>('sciences')
   // Updated every tick by KillPhase, out-of-band from React state - a fight
@@ -29,6 +36,7 @@ export function GameShell() {
   const disengage = useCallback(
     (
       sectorId: NodeId,
+      hostileHealthsAtStart: number[],
       hostileHealthsRemaining: number[],
       leftoverShieldEnergy: number,
       leftoverPhaserEnergy: number,
@@ -37,7 +45,13 @@ export function GameShell() {
     ) => {
       const sector = galaxy.getNode(sectorId)
       if (sector) galaxy.setNode(sectorId, applyCombatResult(sector, hostileHealthsRemaining))
-      resolveEncounter(hullDamageTaken, leftoverShieldEnergy, leftoverPhaserEnergy, torpedoesRemaining)
+      // Only hostiles that were alive at the start of THIS encounter and are
+      // down now count - a pack resumed mid-fight (fled or lost earlier)
+      // never double-counts one it had already downed before.
+      const hostilesKilled = hostileHealthsAtStart.filter(
+        (health, i) => health > 0 && hostileHealthsRemaining[i] <= 0,
+      ).length
+      resolveEncounter(hullDamageTaken, leftoverShieldEnergy, leftoverPhaserEnergy, torpedoesRemaining, hostilesKilled)
       liveCombatRef.current = null
       setEncounter(null)
       setActiveTab('sciences')
@@ -61,6 +75,7 @@ export function GameShell() {
         const live = liveCombatRef.current
         disengage(
           encounter.sectorId,
+          encounter.hostileHealths,
           live?.hostileHealthsRemaining ?? encounter.hostileHealths,
           live?.shieldEnergy ?? 0,
           live?.phaserEnergy ?? 0,
@@ -88,6 +103,7 @@ export function GameShell() {
       if (!encounter) return
       disengage(
         encounter.sectorId,
+        encounter.hostileHealths,
         result.hostileHealthsRemaining,
         result.leftoverShieldEnergy,
         result.leftoverPhaserEnergy,
@@ -101,6 +117,17 @@ export function GameShell() {
   const handleLiveCombatUpdate = useCallback((state: LiveCombatState) => {
     liveCombatRef.current = state
   }, [])
+
+  if (status !== 'active') {
+    return (
+      <EndScreen
+        status={status}
+        hostilesDestroyed={state.hostilesDestroyed}
+        stardate={state.stardate}
+        onNewGame={onNewGame}
+      />
+    )
+  }
 
   return (
     <HuntPhase

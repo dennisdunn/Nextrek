@@ -4,7 +4,7 @@ import type { NodeId } from '../graph/UndoGraph'
 import { pickGateDestination } from './anomalyEffects'
 import { sectorId } from './cartography'
 import { createGalaxy, disengageWarp, engageWarp, impulseNeighbors, type CreateGalaxyOptions } from './galaxy'
-import { stardateCost, STARTING_STARDATE, tacticalAlert } from './mission'
+import { HOSTILE_QUOTA, missionStatus, stardateCost, STARTING_STARDATE, tacticalAlert } from './mission'
 import { knownSectors, sensedAnomalies, sensedHostiles } from './sensors'
 import {
   canAfford,
@@ -37,6 +37,8 @@ export interface HuntState {
   subsystems: SubsystemHealth
   /** Game-wide torpedo inventory - a limited physical supply, not energy, restocked only at a starbase. */
   torpedoes: number
+  /** Hostiles destroyed so far this mission, toward mission.ts's HOSTILE_QUOTA. */
+  hostilesDestroyed: number
   visited: Set<NodeId>
   /** Sectors a long-range scan has revealed - what the strategic map shows, beyond what's been visited. */
   scanned: Set<NodeId>
@@ -70,6 +72,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     energy: { reserve: STARTING_ENERGY, shields: 0, phasers: 0 },
     subsystems: fullSubsystemHealth(),
     torpedoes: STARTING_TORPEDOES,
+    hostilesDestroyed: 0,
     visited: new Set([home]),
     scanned: new Set(),
     scannedAnomalies: new Set(),
@@ -92,6 +95,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
   const anomalyKnown = new Set([...state.scannedAnomalies, ...state.visited])
   const sensedDanger = sensedHostiles(galaxy, state.position)
   const alert = tacticalAlert(Boolean(currentSector?.hostile), sensedDanger.length)
+  const status = missionStatus(state.hostilesDestroyed, state.stardate)
 
   const moveTo = useCallback(
     (target: NodeId): NodeId | false => {
@@ -255,7 +259,13 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
    * setState calls risked one clobbering the other's result.
    */
   const resolveEncounter = useCallback(
-    (hullDamageTaken: number, leftoverShieldEnergy: number, leftoverPhaserEnergy: number, torpedoesRemaining: number) => {
+    (
+      hullDamageTaken: number,
+      leftoverShieldEnergy: number,
+      leftoverPhaserEnergy: number,
+      torpedoesRemaining: number,
+      hostilesKilled: number,
+    ) => {
       const { subsystems, damagedSystem } = applySubsystemWear(state.subsystems, hullDamageTaken)
       const refunded = refund(leftoverShieldEnergy, leftoverPhaserEnergy, state.energy)
       // A shield generator or phaser array just damaged this same encounter
@@ -269,7 +279,13 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
         Math.min(refunded.phasers, phaserCap),
         phaserCap,
       )
-      setState((s) => ({ ...s, subsystems, energy, torpedoes: torpedoesRemaining }))
+      setState((s) => ({
+        ...s,
+        subsystems,
+        energy,
+        torpedoes: torpedoesRemaining,
+        hostilesDestroyed: s.hostilesDestroyed + hostilesKilled,
+      }))
 
       const recovered = Math.round(Math.max(0, leftoverShieldEnergy + leftoverPhaserEnergy) * REFUND_EFFICIENCY)
       appendLog(
@@ -277,13 +293,18 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
           ? `Shields and phasers stood down - ${recovered} energy recovered to the main reserve.`
           : 'Shields and phasers were fully depleted in the engagement.',
       )
+      if (hostilesKilled > 0) {
+        appendLog(
+          `${hostilesKilled} hostile${hostilesKilled === 1 ? '' : 's'} destroyed - ${state.hostilesDestroyed + hostilesKilled}/${HOSTILE_QUOTA} toward mission quota.`,
+        )
+      }
       if (damagedSystem) {
         appendLog(
           `${SHIP_SYSTEM_LABEL[damagedSystem]} damaged in the engagement - down to ${Math.round(subsystems[damagedSystem])}%.`,
         )
       }
     },
-    [state.subsystems, state.energy, appendLog],
+    [state.subsystems, state.energy, state.hostilesDestroyed, appendLog],
   )
 
   const longRangeScan = useCallback(() => {
@@ -334,6 +355,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     anomalyKnown,
     sensedDanger,
     alert,
+    status,
     moveTo,
     toggleWarp,
     allocateEnergy,

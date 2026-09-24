@@ -1,9 +1,10 @@
-import type { AlertLevel } from '../mission'
+import { HOSTILE_QUOTA, stardateRemaining, type AlertLevel } from '../mission'
 import { Panel } from './Panel'
 
 export interface StatusPanelProps {
   sectorName: string
   stardate: number
+  hostilesDestroyed: number
   alert: AlertLevel
 }
 
@@ -19,7 +20,7 @@ const ALERT_CAPTION: Record<AlertLevel, string | null> = {
   red: 'Hostile contact - this sector.',
 }
 
-export function StatusPanel({ sectorName, stardate, alert }: StatusPanelProps) {
+export function StatusPanel({ sectorName, stardate, hostilesDestroyed, alert }: StatusPanelProps) {
   return (
     <Panel title="Status" accent="status">
       <dl className="readout">
@@ -27,6 +28,12 @@ export function StatusPanel({ sectorName, stardate, alert }: StatusPanelProps) {
         <dd>{sectorName}</dd>
         <dt>Stardate</dt>
         <dd>{stardate.toFixed(1)}</dd>
+        <dt>Mission clock</dt>
+        <dd>{stardateRemaining(stardate).toFixed(1)} left</dd>
+        <dt>Hostiles destroyed</dt>
+        <dd>
+          {hostilesDestroyed} / {HOSTILE_QUOTA}
+        </dd>
         <dt>Tactical</dt>
         <dd>
           <span className={`annunciator annunciator--${alert}`}>{ALERT_LABEL[alert]}</span>
