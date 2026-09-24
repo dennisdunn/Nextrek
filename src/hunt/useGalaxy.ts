@@ -161,7 +161,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
         // touched the warp network, not the impulse layer underneath (see
         // HuntState.warpEnteredBarrier) - a quirk left in deliberately.
         barrier(galaxy, target)
-        message = `${sector!.name} - the barrier collapses inward behind the ship. No route leads back in. (-${cost} energy)`
+        message = `${sector!.name} - the barrier collapses inward behind the ship. No route leads back in.`
       } else if (anomaly?.kind === 'gate') {
         // Blackhole Assisted Traversal: no choice in it, straight to a
         // random, non-anomaly sector well clear of where you just were.
@@ -178,9 +178,9 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
         if (redirect !== undefined) {
           landedAt = redirect
           const landedSector = galaxy.getNode(landedAt)
-          message = `Blackhole-assisted traversal! ${sector!.name} flings the ship to ${landedSector?.name ?? landedAt}. (-${cost} energy)`
+          message = `Blackhole-assisted traversal! ${sector!.name} flings the ship to ${landedSector?.name ?? landedAt}.`
         } else {
-          message = `Moved to ${sector!.name}. (-${cost} energy)`
+          message = `Moved to ${sector!.name}.`
         }
       } else if (anomaly?.kind === 'conduit' && !arrivedViaConduit) {
         // Walking up to a conduit sector the ordinary way just channels you
@@ -189,9 +189,9 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
         // a real landing, hostile encounter included.
         landedAt = anomaly.link!
         const landedSector = galaxy.getNode(landedAt)
-        message = `Conduit resonance pulls the ship through to ${landedSector?.name ?? landedAt}. (-${cost} energy)`
+        message = `Conduit resonance pulls the ship through to ${landedSector?.name ?? landedAt}.`
       } else {
-        message = `Moved to ${sector?.name ?? target}. (-${cost} energy)`
+        message = `Moved to ${sector?.name ?? target}.`
       }
 
       const landedSector = galaxy.getNode(landedAt)
@@ -265,7 +265,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
         warpEngaged: true,
         energy: { ...s.energy, reserve: s.energy.reserve - cost },
       }))
-      appendLog(`Warp drive engaged. (-${cost} energy)`)
+      appendLog('Warp drive engaged.')
     }
     bump()
   }, [galaxy, state.warpEngaged, state.energy.reserve, state.subsystems.warpDrive, appendLog, bump])
@@ -352,7 +352,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
       scanned: new Set([...s.scanned, ...targets]),
     }))
     appendLog(
-      `Long-range scan complete: ${targets.length} sector${targets.length === 1 ? '' : 's'} mapped. (-${cost} energy)`,
+      `Long-range scan complete: ${targets.length} sector${targets.length === 1 ? '' : 's'} mapped.`,
     )
     return true
   }, [galaxy, state.position, state.warpEngaged, state.energy.reserve, state.subsystems.sensors, appendLog])
@@ -372,8 +372,8 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     }))
     appendLog(
       found > 0
-        ? `Subspace scan complete: anomaly pinpointed in ${found} sector${found === 1 ? '' : 's'}. (-${cost} energy)`
-        : `Subspace scan complete: no anomalies in range. (-${cost} energy)`,
+        ? `Subspace scan complete: anomaly pinpointed in ${found} sector${found === 1 ? '' : 's'}.`
+        : 'Subspace scan complete: no anomalies in range.',
     )
     return true
   }, [galaxy, state.position, state.warpEngaged, state.energy.reserve, state.subsystems.sensors, appendLog])

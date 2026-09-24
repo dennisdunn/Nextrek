@@ -28,7 +28,7 @@ export function StatusPanel({ sectorName, stardate, hostilesDestroyed, alert }: 
         </div>
         <div className="stat">
           <span className="stat__label">Mission clock</span>
-          <span className="stat__value">{stardateRemaining(stardate).toFixed(1)} left</span>
+          <span className="stat__value">{stardateRemaining(stardate).toFixed(1)}</span>
         </div>
         <div className="stat">
           <span className="stat__label">Hostiles destroyed</span>

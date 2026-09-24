@@ -210,7 +210,8 @@
 
 .controls-panel button {
   width: 100%;
-  padding: 12px 8px;
+  /* Right padding is a touch larger than left - the left border already eats into that side's own visual margin. */
+  padding: 12px 10px 12px 8px;
   font-size: 13px;
   border-left-width: 4px;
   border-left-style: solid;
