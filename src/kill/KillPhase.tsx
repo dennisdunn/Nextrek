@@ -1,7 +1,7 @@
 import { entityExists } from 'bitecs'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react'
 import { PLAYER_FIRE_COOLDOWN_MS, STAR_DISTANCE_FROM_CENTER } from '../balance'
-import { bindInput, createInputState, inputSystem } from './input'
+import { bindInput, createInputState, inputSystem, type InputState } from './input'
 import {
   BASE_HULL_HEALTH,
   BASE_WEAPON_DAMAGE,
@@ -123,6 +123,18 @@ export function KillPhase({
   const levelsRef = useRef({ shieldLevel, phaserLevel })
   const worldRef = useRef<KillWorld | null>(null)
   const playerEidRef = useRef<number | null>(null)
+  // Same InputState object the tick loop's inputSystem reads - keyboard
+  // (bindInput) and the on-screen touch buttons below both just flip flags
+  // on it, so neither the tick loop nor inputSystem needs to know which
+  // input source is in play.
+  const inputRef = useRef<InputState | null>(null)
+  // Coarse pointer = touch-primary (tablet/phone) - a mouse/trackpad device
+  // reports "fine" even if it also has a touchscreen. Checked once on mount
+  // rather than kept reactive: a device switching primary pointer type
+  // mid-fight isn't a case worth handling.
+  const [touchCapable] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches,
+  )
 
   useEffect(() => {
     pausedRef.current = paused
@@ -169,6 +181,7 @@ export function KillPhase({
     }
 
     const input = createInputState()
+    inputRef.current = input
     const unbindInput = bindInput(input)
 
     let raf = 0
@@ -318,6 +331,7 @@ export function KillPhase({
       unbindInput()
       worldRef.current = null
       playerEidRef.current = null
+      inputRef.current = null
     }
     // Deliberately keyed on encounterId, hostileHealths, hasStarHazard,
     // hostileWeaponDamage, hostileFireCooldownMs, torpedoesRemaining, and
@@ -340,6 +354,26 @@ export function KillPhase({
   const aliveCount = hostileHealths.filter((health) => health > 0).length
   const totalHostileHealth = hostileHealths.reduce((sum, health) => sum + health, 0)
 
+  // Press-and-hold semantics identical to a keydown/keyup pair - a touch
+  // button held down keeps e.g. `fire` true across ticks exactly like
+  // holding Space does, so the same cooldown-gated checks in the tick loop
+  // above apply unchanged. pointerup/leave/cancel all release it, so a
+  // finger sliding off the button (rather than lifting cleanly) can't leave
+  // it stuck "held".
+  function touchButton(key: keyof InputState) {
+    const set = (value: boolean) => (e: PointerEvent) => {
+      e.preventDefault()
+      if (inputRef.current) inputRef.current[key] = value
+    }
+    return {
+      onPointerDown: set(true),
+      onPointerUp: set(false),
+      onPointerLeave: set(false),
+      onPointerCancel: set(false),
+      onContextMenu: (e: MouseEvent) => e.preventDefault(),
+    }
+  }
+
   return (
     <div className="kill-phase">
       <p ref={hudRef} className="kill-hud">
@@ -347,6 +381,29 @@ export function KillPhase({
         {hostileHealths.length} ({Math.round(totalHostileHealth)} hull) · Torpedoes {torpedoesRemaining}
       </p>
       <canvas ref={canvasRef} width={WIDTH} height={HEIGHT} className="kill-canvas" />
+      {touchCapable && (
+        <div className="touch-controls">
+          <div className="touch-controls__cluster touch-controls__cluster--move">
+            <button type="button" className="touch-btn touch-btn--turn" {...touchButton('left')}>
+              ◀
+            </button>
+            <button type="button" className="touch-btn touch-btn--thrust" {...touchButton('thrust')}>
+              ▲
+            </button>
+            <button type="button" className="touch-btn touch-btn--turn" {...touchButton('right')}>
+              ▶
+            </button>
+          </div>
+          <div className="touch-controls__cluster touch-controls__cluster--fire">
+            <button type="button" className="touch-btn touch-btn--torpedo" {...touchButton('torpedo')}>
+              Torp
+            </button>
+            <button type="button" className="touch-btn touch-btn--fire" {...touchButton('fire')}>
+              Fire
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
