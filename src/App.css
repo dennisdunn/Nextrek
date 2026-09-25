@@ -23,19 +23,13 @@
  * height regardless of viewport, silently overflowing .hunt-phase's
  * overflow:hidden and clipping the scan buttons and comms log beneath the
  * fold. A media query switches to a column layout on narrow screens
- * instead, which doesn't hit the same interaction.
+ * instead, which doesn't hit the same interaction. See the bottom of this
+ * file for that media query - it has to come after every base rule it
+ * overrides (.hunt-phase, .controls-panel, .main-station, .hunt-sidebar)
+ * to actually win the cascade; a same-specificity rule earlier in the file
+ * loses to one later in the file regardless of @media nesting, which is
+ * exactly the bug this one's own comment (further down) describes finding.
  */
-@media (max-width: 860px) {
-  .hunt-phase {
-    flex-direction: column;
-    overflow-y: auto;
-  }
-
-  /* flex-basis tracks the main axis - a fixed 104px would flatten the stacked buttons instead of sizing to their content. */
-  .controls-panel {
-    flex: 0 0 auto;
-  }
-}
 
 .hunt-sidebar {
   display: flex;
@@ -650,6 +644,36 @@
   font-size: 13px;
 }
 
+/*
+ * At 64px each with 12px gaps, the two button clusters need ~356px total
+ * (216px movement + 140px fire), more than the Tactical panel actually has
+ * on a phone in portrait (as little as ~278px on an iPhone SE) - the fire
+ * cluster, pushed to the right edge by justify-content:space-between,
+ * overflowed straight off the side of the screen. Shrinking to 44px/6px
+ * below ~500px width brings the total down to ~238px, comfortably inside
+ * even the narrowest current iPhone.
+ */
+@media (max-width: 500px) {
+  .touch-controls {
+    padding: 10px;
+  }
+
+  .touch-controls__cluster {
+    gap: 6px;
+  }
+
+  .touch-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
+  }
+
+  .touch-btn--fire,
+  .touch-btn--torpedo {
+    font-size: 10px;
+  }
+}
+
 
 .end-screen {
   flex: 1;
@@ -697,11 +721,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* flex-start, not center: on a short/narrow phone the three difficulty
+     cards don't all fit, and centering overflowing flex content scrolls to
+     a position straddling the top AND bottom equally (a well-known flexbox
+     trap) rather than starting from the top - the Hard card's bottom half,
+     button included, was unreachable even with scrolling enabled. */
+  justify-content: flex-start;
   gap: 16px;
   text-align: center;
   padding: 24px;
   width: 100%;
+  overflow-y: auto;
 }
 
 .start-screen h1 {
@@ -760,4 +790,49 @@
 
 .start-screen__option--hard strong {
   color: var(--danger);
+}
+
+/*
+ * Deliberately last in the file: every selector below also has a base
+ * (non-media) rule elsewhere in this file, and CSS resolves same-specificity
+ * rules by source order regardless of @media nesting - a media query placed
+ * earlier than the rule it's meant to override LOSES to it on a matching
+ * viewport. That's not hypothetical: an earlier version of this block sat
+ * right after .hunt-phase's own base rule, well before .hunt-sidebar's and
+ * .main-station's base rules further down, and as a result silently did
+ * nothing - verified live on an iPhone SE-sized viewport, where Engineering's
+ * sliders and Status's stats were fully rendered but completely invisible,
+ * clipped by .panel's overflow:hidden after being crushed down by their
+ * still-active base flex-basis. Keep anything added here after every rule
+ * it's meant to beat.
+ */
+@media (max-width: 860px) {
+  .hunt-phase {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  /* flex-basis tracks the main axis - a fixed 104px would flatten the stacked buttons instead of sizing to their content. */
+  .controls-panel {
+    flex: 0 0 auto;
+  }
+
+  /*
+   * .main-station's `flex: 2 1 480px` and .hunt-sidebar's `flex: 1 1 300px`
+   * are sized for the desktop ROW layout, where that's a horizontal share
+   * of width. Once flex-direction flips to column above, those same numbers
+   * become a HEIGHT budget instead - with .hunt-phase's height fixed by the
+   * outer layout, flex-shrink then crushed .hunt-sidebar down to fit.
+   * Sizing both to their natural content height instead removes the
+   * competition for space entirely, so the page can grow past one screen
+   * and actually scroll instead of shrinking things to fit.
+   */
+  .main-station {
+    flex: 0 0 auto;
+  }
+
+  .hunt-sidebar {
+    flex: 0 0 auto;
+    overflow-y: visible;
+  }
 }
