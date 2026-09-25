@@ -27,9 +27,9 @@ const DIFFICULTY_COPY: Record<Difficulty, { label: string; body: string }> = {
 const CONTROLS: [string, string][] = [
   ['Click a sector', 'Move'],
   ['L', 'Long-range scan'],
-  ['S', 'Subspace scan (reveal anomalies)'],
+  ['S', 'Subspace scan'],
   ['W / I', 'Engage warp / return to impulse'],
-  ['Arrows / WASD', 'Steer & thrust (in combat)'],
+  ['Arrows / WASD', 'Steer & thrust'],
   ['Space', 'Fire phasers'],
   ['Enter / T', 'Fire a homing torpedo'],
 ]
