@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Subspace Wumpus ("Nextrek"): Hunt the Wumpus meets Asteroids, loosely based on 1971 BASIC *Star Trek*. A turn-based galaxy-exploration layer (the "hunt phase") drops into real-time top-down combat (the "kill phase") whenever the player moves into a sector holding hostiles. React 19 + TypeScript + Vite, bitECS for the combat simulation, Vitest for tests. Deployed to GitHub Pages on every push to `main` (`.github/workflows/deploy.yml`).
+Nextrek ("Subspace Wumpus"): Hunt the Wumpus meets Asteroids, loosely based on 1971 BASIC *Star Trek*. A turn-based galaxy-exploration layer (the "hunt phase") drops into real-time top-down combat (the "kill phase") whenever the player moves into a sector holding hostiles. React 19 + TypeScript + Vite, bitECS for the combat simulation, Vitest for tests. Deployed to GitHub Pages on every push to `main` (`.github/workflows/deploy.yml`).
 
 ## Commands
 

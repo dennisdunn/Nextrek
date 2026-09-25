@@ -1,6 +1,6 @@
 ---
 name: run-nextrek
-description: Build, run, and drive Subspace Wumpus (Nextrek) - a Vite/React browser game. Use when asked to start the dev server, run its tests, build it, take a screenshot of the game, or interact with the running app (start screen, hunt phase, combat).
+description: Build, run, and drive Nextrek (Subspace Wumpus) - a Vite/React browser game. Use when asked to start the dev server, run its tests, build it, take a screenshot of the game, or interact with the running app (start screen, hunt phase, combat).
 ---
 
 This is a Vite + React + TypeScript single-page app with no backend - drive
