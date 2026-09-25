@@ -14,8 +14,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Subspace Wumpus',
-        short_name: 'Wumpus',
+        name: 'Nextrek',
+        short_name: 'Nextrek',
         description: 'Hunt the Wumpus meets Asteroids, loosely based on 1971 BASIC Star Trek',
         theme_color: '#0a0e17',
         background_color: '#0a0e17',
