@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Difficulty } from '../balance'
 
 export interface StartScreenProps {
@@ -34,7 +35,31 @@ const CONTROLS: [string, string][] = [
   ['Enter / T', 'Fire a homing torpedo'],
 ]
 
+/** One is shown at random per visit to this screen - see randomHint() below. */
+const HINTS: string[] = [
+  "Losing a fight? Switch back to Sciences and move to another sector - that's how you flee.",
+  "A wounded hostile pack stays wounded if you leave and come back - fleeing doesn't heal it.",
+  'Docking at a starbase fully restores energy, repairs every subsystem, and restocks torpedoes.',
+  'Torpedoes hit much harder than phasers, but the supply is limited - restock only at a starbase.',
+  'A star hazard bypasses shields entirely - steer clear of it during a fight.',
+  "Leftover shield and phaser energy is only half-refunded to reserve when a fight ends - don't over-allocate.",
+  'Warp travels faster than impulse, but costs more energy the farther you jump.',
+  "A damaged subsystem doesn't just perform worse - the actions that use it cost more energy too.",
+  'Subspace scans reveal nearby anomalies; long-range scans reveal everything else nearby.',
+  'Your home sector is always safe - hostiles, anomalies, and starbases never spawn there.',
+  'On a touch device, on-screen controls appear automatically during combat.',
+]
+
+function randomHint(): string {
+  return HINTS[Math.floor(Math.random() * HINTS.length)]
+}
+
 export function StartScreen({ onSelect }: StartScreenProps) {
+  // Picked once per visit to this screen, not re-rolled on every render -
+  // there's no other state here to trigger one anyway, but a lazy
+  // initializer keeps it that way deliberately rather than by accident.
+  const [hint] = useState(randomHint)
+
   return (
     <div className="start-screen">
       <h1>Nextrek</h1>
@@ -58,10 +83,7 @@ export function StartScreen({ onSelect }: StartScreenProps) {
             </div>
           ))}
         </div>
-        <p className="start-screen__note">
-          Losing a fight? Switch back to Sciences and move to another sector - that's how you
-          flee. On a touch device, on-screen controls appear automatically during combat.
-        </p>
+        <p className="start-screen__note">{hint}</p>
       </div>
 
       <p>Choose your mission difficulty.</p>
