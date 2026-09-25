@@ -1,6 +1,6 @@
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -27,5 +27,10 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    // __balanceSim.test.ts is a manual difficulty-tuning tool, not a real
+    // test (no assertions, ~20s runtime) - keep it out of the default
+    // suite/CI run. Invoke it on purpose: npm run sim:balance
+    // (vitest.sim.config.ts), which points at just that file.
+    exclude: [...configDefaults.exclude, 'src/__balanceSim.test.ts'],
   },
 })

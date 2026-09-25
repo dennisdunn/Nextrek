@@ -10,7 +10,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "sim:balance": "vitest run --config vitest.sim.config.ts --reporter=verbose"
   },
   "dependencies": {
     "bitecs": "^0.4.0",
