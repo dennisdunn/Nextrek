@@ -717,6 +717,14 @@
 }
 
 .start-screen {
+  /* border-box, not the browser default content-box: width:100% plus
+     padding under content-box adds the padding on TOP of 100% of the
+     available width, overflowing #app by 2x the padding - there's no
+     global box-sizing reset in this project. Pre-existing (since this
+     component's own first version), just not visible until a full
+     paragraph of body text made the overflow obvious instead of a few
+     pixels of slack around the difficulty cards. */
+  box-sizing: border-box;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -751,6 +759,74 @@
   font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.start-screen__description {
+  /* width:100% (not just max-width) so it actually shrinks to the
+     available space on a narrow phone instead of trying to hold 46ch of
+     unbroken preferred width and running text off the right edge - a
+     non-stretched flex item's width otherwise resolves from content, not
+     from its container. */
+  width: 100%;
+  max-width: 46ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.start-screen__instructions {
+  /* border-box, not the browser default content-box: width:100% plus
+     padding under content-box adds the padding on TOP of 100%, which is
+     exactly what pushed this past the right edge of an iPhone SE screen -
+     there's no global box-sizing reset in this project. */
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 420px;
+  padding: 16px 20px;
+  text-align: left;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.start-screen__instructions h2 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-h);
+}
+
+.start-screen__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.start-screen__control-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.start-screen__key {
+  flex: 0 0 auto;
+  min-width: 110px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.start-screen__note {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.75;
 }
 
 .start-screen__options {
