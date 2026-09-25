@@ -1,4 +1,6 @@
-# Subspace Wumpus
+# Nextrek
+
+**Subspace Wumpus**
 
 **[Play it now →](https://dennisdunn.github.io/Nextrek/)**
 
@@ -6,7 +8,7 @@ Hunt the Wumpus meets Asteroids, loosely based on 1971 BASIC *Star Trek*. Explor
 
 ## The game
 
-Subspace Wumpus alternates between two phases:
+Nextrek alternates between two phases:
 
 - **Hunt phase** — a turn-based strategic layer. The galaxy is a polar grid of sectors arranged in rings around a galactic core. You move sector to sector by impulse or warp, spend energy on long-range and subspace scans to reveal what's nearby, and manage shield/phaser power allocation. Subspace anomalies (barriers, gates, conduits) complicate navigation, and starbases fully restore your ship.
 - **Kill phase** — a real-time, top-down arena in the style of *Asteroids*, opened automatically the moment you move into a sector holding hostiles. Fly your ship, fire phasers, and lock on with homing torpedoes while managing the same shield/phaser energy pools from the hunt phase. Some encounters also have a star to avoid.
