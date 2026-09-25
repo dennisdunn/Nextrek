@@ -1,5 +1,4 @@
 import { LOW_POWER_THRESHOLD } from '../../balance'
-import { STARTING_ENERGY } from '../ship'
 import type { EnergyPools, Subsystem, SubsystemHealth } from '../subsystems'
 import { Panel } from './Panel'
 
@@ -8,11 +7,13 @@ export interface EngineeringPanelProps {
   subsystems: SubsystemHealth
   /** Game-wide torpedo inventory - visible here since Tactical only exists during an active encounter. */
   torpedoes: number
+  /** The active difficulty's starting reserve - what the power bar reads 100% against. */
+  startingEnergy: number
   onAllocate: (subsystem: Subsystem, level: number) => void
 }
 
-export function EngineeringPanel({ energy, subsystems, torpedoes, onAllocate }: EngineeringPanelProps) {
-  const reservePct = Math.max(0, Math.min(100, (energy.reserve / STARTING_ENERGY) * 100))
+export function EngineeringPanel({ energy, subsystems, torpedoes, startingEnergy, onAllocate }: EngineeringPanelProps) {
+  const reservePct = Math.max(0, Math.min(100, (energy.reserve / startingEnergy) * 100))
 
   return (
     <Panel title="Engineering" accent="engineering">

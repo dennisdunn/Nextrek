@@ -105,6 +105,8 @@ export interface CreateGalaxyOptions {
   starbaseDensity?: number
   /** Fraction of hostile sectors (not otherwise complicated by an anomaly) that also get a star hazard, in [0, 1]. */
   starHazardDensity?: number
+  /** Largest pack size a hostile sector can seed - a sector rolls 1 to this many. */
+  maxHostilesPerSector?: number
   rng?: () => number
   homeSector?: { region: number; ring: number }
 }
@@ -115,6 +117,7 @@ export function createGalaxy(options: CreateGalaxyOptions = {}): Galaxy {
     anomalyDensity = ANOMALY_DENSITY,
     starbaseDensity = STARBASE_DENSITY,
     starHazardDensity = STAR_HAZARD_DENSITY,
+    maxHostilesPerSector = MAX_HOSTILES_PER_SECTOR,
     rng = Math.random,
     homeSector = { region: 0, ring: 0 },
   } = options
@@ -141,7 +144,7 @@ export function createGalaxy(options: CreateGalaxyOptions = {}): Galaxy {
     // handling for why that's actually safe.
     const noHostile = anomaly?.kind === 'barrier' || anomaly?.kind === 'gate'
     const hostile = !isHome && !noHostile && rng() < hostileDensity
-    const hostileCount = hostile ? 1 + Math.floor(rng() * MAX_HOSTILES_PER_SECTOR) : 0
+    const hostileCount = hostile ? 1 + Math.floor(rng() * maxHostilesPerSector) : 0
     // A starbase is a safe haven, not a hazard - never share a sector with
     // an anomaly (of any kind) or a hostile.
     const starbase = !isHome && !anomaly && !hostile && rng() < starbaseDensity

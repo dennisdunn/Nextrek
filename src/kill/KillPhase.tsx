@@ -63,6 +63,9 @@ export interface KillPhaseProps {
   torpedoTubesHealth: number
   /** Whether this sector has a star to avoid during the fight. */
   hasStarHazard: boolean
+  /** The active difficulty's hostile weapon stats - see balance.ts's DIFFICULTY_PRESETS. */
+  hostileWeaponDamage: number
+  hostileFireCooldownMs: number
   /** True whenever Tactical isn't the visible tab - freezes the fight rather than running it out of sight. */
   paused: boolean
   onResolved: (result: CombatResult) => void
@@ -108,6 +111,8 @@ export function KillPhase({
   torpedoesRemaining,
   torpedoTubesHealth,
   hasStarHazard,
+  hostileWeaponDamage,
+  hostileFireCooldownMs,
   paused,
   onResolved,
   onLiveUpdate,
@@ -241,7 +246,7 @@ export function KillPhase({
         }
       }
 
-      hostileAiSystem(world, playerEid)
+      hostileAiSystem(world, playerEid, { damage: hostileWeaponDamage, cooldownMs: hostileFireCooldownMs })
       homingSystem(world)
       physicsSystem(world)
       boundarySystem(world, { width: WIDTH, height: HEIGHT })
@@ -315,12 +320,22 @@ export function KillPhase({
       playerEidRef.current = null
     }
     // Deliberately keyed on encounterId, hostileHealths, hasStarHazard,
-    // torpedoesRemaining, and torpedoTubesHealth - all fixed for the
-    // encounter's lifetime, none of them ever change mid-fight (unlike
-    // shieldLevel/phaserLevel, which are live-synced above instead of
-    // rebuilding the world).
+    // hostileWeaponDamage, hostileFireCooldownMs, torpedoesRemaining, and
+    // torpedoTubesHealth - all fixed for the encounter's lifetime, none of
+    // them ever change mid-fight (unlike shieldLevel/phaserLevel, which are
+    // live-synced above instead of rebuilding the world).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [encounterId, hostileHealths, hasStarHazard, torpedoesRemaining, torpedoTubesHealth, onResolved, onLiveUpdate])
+  }, [
+    encounterId,
+    hostileHealths,
+    hasStarHazard,
+    hostileWeaponDamage,
+    hostileFireCooldownMs,
+    torpedoesRemaining,
+    torpedoTubesHealth,
+    onResolved,
+    onLiveUpdate,
+  ])
 
   const aliveCount = hostileHealths.filter((health) => health > 0).length
   const totalHostileHealth = hostileHealths.reduce((sum, health) => sum + health, 0)

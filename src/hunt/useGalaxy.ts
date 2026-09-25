@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { COMMS_LOG_LIMIT } from '../balance'
+import { COMMS_LOG_LIMIT, DIFFICULTY_PRESETS, type Difficulty } from '../balance'
 import { barrier } from '../graph/anomalies'
 import type { NodeId } from '../graph/UndoGraph'
 import { pickGateDestination } from './anomalyEffects'
@@ -12,26 +12,9 @@ import {
   randomHomeSector,
   type CreateGalaxyOptions,
 } from './galaxy'
-import {
-  HOSTILE_QUOTA,
-  isStranded,
-  missionStatus,
-  stardateCost,
-  STARTING_STARDATE,
-  tacticalAlert,
-  type DefeatReason,
-} from './mission'
+import { isStranded, missionStatus, stardateCost, STARTING_STARDATE, tacticalAlert, type DefeatReason } from './mission'
 import { knownSectors, sensedAnomalies, sensedHostiles } from './sensors'
-import {
-  canAfford,
-  longRangeScanCost,
-  moveCost,
-  MOVE_COST_NORMAL,
-  STARTING_ENERGY,
-  STARTING_TORPEDOES,
-  subspaceScanCost,
-  WARP_ENGAGE_COST,
-} from './ship'
+import { canAfford, longRangeScanCost, moveCost, MOVE_COST_NORMAL, subspaceScanCost, WARP_ENGAGE_COST } from './ship'
 import {
   allocate,
   applySubsystemWear,
@@ -73,27 +56,58 @@ export interface HuntState {
   log: string[]
 }
 
+export interface UseGalaxyOptions extends CreateGalaxyOptions {
+  /** Selected at mission start (see game/StartScreen.tsx) - defaults to 'normal' (today's balance.ts values). */
+  difficulty?: Difficulty
+}
+
 /**
  * React glue around the UndoGraph-backed galaxy. The graph is mutable and
  * lives outside React state; a version counter forces a re-render whenever
  * a mutation (move, warp, undo) changes what the graph reports.
  */
-export function useGalaxy(options?: CreateGalaxyOptions) {
+export function useGalaxy(options?: UseGalaxyOptions) {
+  // Only supplies defaults for whichever of these the caller didn't already
+  // pass explicitly - a test overriding hostileDensity to 0, say, still
+  // gets that 0 rather than the preset's value (?? only falls back on
+  // null/undefined, and 0 is neither).
+  const preset = DIFFICULTY_PRESETS[options?.difficulty ?? 'normal']
+  const missionConfig = { hostileQuota: preset.hostileQuota, stardateBudget: preset.stardateBudget }
+
   // A caller-supplied homeSector is honored as-is (tests rely on this for a
   // deterministic start); otherwise a fresh mission starts somewhere new
   // each time. Either way, createGalaxy's own home-exclusion logic keeps
   // whichever sector this resolves to clear of hostiles/anomalies/starbases.
+  // Deliberately computed once (empty deps): the galaxy and home sector are
+  // fixed for this component's whole lifetime - a new mission remounts
+  // GameShell from scratch (see App.tsx's gameKey) rather than reacting to
+  // an options/difficulty change after mount.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const homeSector = useMemo(() => options?.homeSector ?? randomHomeSector(options?.rng), [])
-  const galaxy = useMemo(() => createGalaxy({ ...options, homeSector }), [])
+  /* eslint-disable react-hooks/exhaustive-deps */
+  const galaxy = useMemo(
+    () =>
+      createGalaxy({
+        hostileDensity: options?.hostileDensity ?? preset.hostileDensity,
+        anomalyDensity: options?.anomalyDensity ?? preset.anomalyDensity,
+        starbaseDensity: options?.starbaseDensity ?? preset.starbaseDensity,
+        starHazardDensity: options?.starHazardDensity ?? preset.starHazardDensity,
+        maxHostilesPerSector: options?.maxHostilesPerSector ?? preset.maxHostilesPerSector,
+        rng: options?.rng,
+        homeSector,
+      }),
+    [],
+  )
+  /* eslint-enable react-hooks/exhaustive-deps */
   const home = sectorId(homeSector.region, homeSector.ring)
   const [, setVersion] = useState(0)
   const [state, setState] = useState<HuntState>({
     position: home,
     warpEngaged: false,
     stardate: STARTING_STARDATE,
-    energy: { reserve: STARTING_ENERGY, shields: 0, phasers: 0 },
+    energy: { reserve: preset.startingEnergy, shields: 0, phasers: 0 },
     subsystems: fullSubsystemHealth(),
-    torpedoes: STARTING_TORPEDOES,
+    torpedoes: preset.startingTorpedoes,
     hostilesDestroyed: 0,
     visited: new Set([home]),
     scanned: new Set(),
@@ -125,7 +139,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
   const sensedDanger = sensedHostiles(galaxy, state.position)
   const alert = tacticalAlert(Boolean(currentSector?.hostile), sensedDanger.length)
 
-  const timeQuotaStatus = missionStatus(state.hostilesDestroyed, state.stardate)
+  const timeQuotaStatus = missionStatus(state.hostilesDestroyed, state.stardate, missionConfig)
   // Shield/phaser energy is reclaimable back to reserve outside combat (see
   // subsystems.ts's allocate), so it's the combined total - not reserve
   // alone - that has to run dry to truly be unrecoverable. The cheapest
@@ -220,10 +234,10 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
         position: landedAt,
         stardate: s.stardate + stardateCost(s.warpEngaged),
         energy: docked
-          ? { reserve: STARTING_ENERGY, shields: 0, phasers: 0 }
+          ? { reserve: preset.startingEnergy, shields: 0, phasers: 0 }
           : { ...s.energy, reserve: s.energy.reserve - cost },
         subsystems: docked ? fullSubsystemHealth() : s.subsystems,
-        torpedoes: docked ? STARTING_TORPEDOES : s.torpedoes,
+        torpedoes: docked ? preset.startingTorpedoes : s.torpedoes,
         visited: new Set(s.visited).add(target).add(landedAt),
         warpEnteredBarrier: nextWarpEnteredBarrier,
       }))
@@ -254,6 +268,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
       state.subsystems.impulseEngines,
       home,
       appendLog,
+      preset,
     ],
   )
 
@@ -340,7 +355,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
       )
       if (hostilesKilled > 0) {
         appendLog(
-          `${hostilesKilled} hostile${hostilesKilled === 1 ? '' : 's'} destroyed - ${hostilesDestroyed}/${HOSTILE_QUOTA} toward mission quota.`,
+          `${hostilesKilled} hostile${hostilesKilled === 1 ? '' : 's'} destroyed - ${hostilesDestroyed}/${preset.hostileQuota} toward mission quota.`,
         )
       }
       if (damagedSystem) {
@@ -349,7 +364,7 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
         )
       }
     },
-    [appendLog],
+    [appendLog, preset],
   )
 
   const longRangeScan = useCallback(() => {
@@ -402,6 +417,9 @@ export function useGalaxy(options?: CreateGalaxyOptions) {
     alert,
     status,
     defeatReason,
+    /** The active difficulty's full tuning, for anything downstream that needs a value not otherwise exposed above (e.g. hostile combat stats). */
+    difficultyPreset: preset,
+    missionConfig,
     moveTo,
     toggleWarp,
     allocateEnergy,

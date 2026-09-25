@@ -17,6 +17,8 @@ export interface Encounter {
   sectorId: NodeId
   hostileHealths: number[]
   hasStarHazard: boolean
+  hostileWeaponDamage: number
+  hostileFireCooldownMs: number
 }
 
 export interface HuntPhaseProps {
@@ -66,6 +68,8 @@ export function HuntPhase({
     known,
     anomalyKnown,
     alert,
+    difficultyPreset,
+    missionConfig,
     toggleWarp,
     allocateEnergy,
     longRangeScan,
@@ -130,6 +134,8 @@ export function HuntPhase({
                 torpedoesRemaining={state.torpedoes}
                 torpedoTubesHealth={state.subsystems.torpedoTubes}
                 hasStarHazard={encounter.hasStarHazard}
+                hostileWeaponDamage={encounter.hostileWeaponDamage}
+                hostileFireCooldownMs={encounter.hostileFireCooldownMs}
                 paused={activeTab !== 'tactical'}
                 onResolved={onCombatResolved}
                 onLiveUpdate={onLiveCombatUpdate}
@@ -168,6 +174,7 @@ export function HuntPhase({
               stardate={state.stardate}
               hostilesDestroyed={state.hostilesDestroyed}
               alert={alert}
+              missionConfig={missionConfig}
             />
           ) : (
             <DamageControlPanel subsystems={state.subsystems} />
@@ -178,6 +185,7 @@ export function HuntPhase({
           energy={state.energy}
           subsystems={state.subsystems}
           torpedoes={state.torpedoes}
+          startingEnergy={difficultyPreset.startingEnergy}
           onAllocate={allocateEnergy}
         />
         <CommsPanel log={state.log} />

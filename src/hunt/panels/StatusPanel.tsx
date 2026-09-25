@@ -1,10 +1,12 @@
-import { HOSTILE_QUOTA, stardateRemaining, type AlertLevel } from '../mission'
+import { stardateRemaining, type AlertLevel, type MissionConfig } from '../mission'
 
 export interface StatusPanelProps {
   sectorName: string
   stardate: number
   hostilesDestroyed: number
   alert: AlertLevel
+  /** The active difficulty's quota/budget - see balance.ts's DIFFICULTY_PRESETS. */
+  missionConfig: MissionConfig
 }
 
 const ALERT_LABEL: Record<AlertLevel, string> = {
@@ -14,7 +16,7 @@ const ALERT_LABEL: Record<AlertLevel, string> = {
 }
 
 /** Body content for the Status view - hosted inside the merged Status/Damage-control panel in HuntPhase.tsx. */
-export function StatusPanel({ sectorName, stardate, hostilesDestroyed, alert }: StatusPanelProps) {
+export function StatusPanel({ sectorName, stardate, hostilesDestroyed, alert, missionConfig }: StatusPanelProps) {
   return (
     <>
       <div className="stat-grid">
@@ -28,12 +30,12 @@ export function StatusPanel({ sectorName, stardate, hostilesDestroyed, alert }: 
         </div>
         <div className="stat">
           <span className="stat__label">Mission clock</span>
-          <span className="stat__value">{stardateRemaining(stardate).toFixed(1)}</span>
+          <span className="stat__value">{stardateRemaining(stardate, missionConfig).toFixed(1)}</span>
         </div>
         <div className="stat">
           <span className="stat__label">Hostiles destroyed</span>
           <span className="stat__value">
-            {hostilesDestroyed} / {HOSTILE_QUOTA}
+            {hostilesDestroyed} / {missionConfig.hostileQuota}
           </span>
         </div>
       </div>

@@ -1,11 +1,14 @@
-import { HOSTILE_QUOTA, MISSION_DEADLINE, type DefeatReason, type MissionStatus } from '../hunt/mission'
+import type { DefeatReason, MissionStatus } from '../hunt/mission'
 
 export interface EndScreenProps {
   status: Extract<MissionStatus, 'victory' | 'defeat'>
   /** Which kind of defeat this was - ignored (and may be null) for a victory. */
   defeatReason: DefeatReason | null
   hostilesDestroyed: number
+  /** The active difficulty's quota/deadline - see balance.ts's DIFFICULTY_PRESETS. */
+  hostileQuota: number
   stardate: number
+  missionDeadline: number
   onNewGame: () => void
 }
 
@@ -26,7 +29,15 @@ const DEFEAT_COPY: Record<DefeatReason, { heading: string; body: string }> = {
 }
 
 /** Full replacement for the bridge HUD once the mission is decided - nothing left to click through to. */
-export function EndScreen({ status, defeatReason, hostilesDestroyed, stardate, onNewGame }: EndScreenProps) {
+export function EndScreen({
+  status,
+  defeatReason,
+  hostilesDestroyed,
+  hostileQuota,
+  stardate,
+  missionDeadline,
+  onNewGame,
+}: EndScreenProps) {
   const { heading, body } = status === 'victory' ? VICTORY_COPY : DEFEAT_COPY[defeatReason ?? 'timeout']
   return (
     <div className={`end-screen end-screen--${status}`}>
@@ -35,11 +46,11 @@ export function EndScreen({ status, defeatReason, hostilesDestroyed, stardate, o
       <dl className="readout end-screen__stats">
         <dt>Hostiles destroyed</dt>
         <dd>
-          {hostilesDestroyed} / {HOSTILE_QUOTA}
+          {hostilesDestroyed} / {hostileQuota}
         </dd>
         <dt>Final stardate</dt>
         <dd>
-          {stardate.toFixed(1)} / {MISSION_DEADLINE.toFixed(1)}
+          {stardate.toFixed(1)} / {missionDeadline.toFixed(1)}
         </dd>
       </dl>
       <button type="button" onClick={onNewGame}>

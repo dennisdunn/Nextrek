@@ -16,8 +16,21 @@ export function tacticalAlert(hostileHere: boolean, sensedNearbyCount: number): 
   return 'green'
 }
 
-/** The stardate at which time runs out. */
+/** The stardate at which time runs out, at the default (normal-difficulty) quota/budget. */
 export const MISSION_DEADLINE = STARTING_STARDATE + STARDATE_BUDGET
+
+/** The quota/budget a mission is actually running with - varies by difficulty (see balance.ts's DIFFICULTY_PRESETS). */
+export interface MissionConfig {
+  hostileQuota: number
+  stardateBudget: number
+}
+
+export const DEFAULT_MISSION_CONFIG: MissionConfig = { hostileQuota: HOSTILE_QUOTA, stardateBudget: STARDATE_BUDGET }
+
+/** The stardate at which time runs out for a given mission config. */
+export function missionDeadline(config: MissionConfig = DEFAULT_MISSION_CONFIG): number {
+  return STARTING_STARDATE + config.stardateBudget
+}
 
 export type MissionStatus = 'active' | 'victory' | 'defeat'
 
@@ -26,15 +39,19 @@ export type MissionStatus = 'active' | 'victory' | 'defeat'
  * that would otherwise have run out the clock still counts as a win, not
  * a photo finish going the other way.
  */
-export function missionStatus(hostilesDestroyed: number, stardate: number): MissionStatus {
-  if (hostilesDestroyed >= HOSTILE_QUOTA) return 'victory'
-  if (stardate >= MISSION_DEADLINE) return 'defeat'
+export function missionStatus(
+  hostilesDestroyed: number,
+  stardate: number,
+  config: MissionConfig = DEFAULT_MISSION_CONFIG,
+): MissionStatus {
+  if (hostilesDestroyed >= config.hostileQuota) return 'victory'
+  if (stardate >= missionDeadline(config)) return 'defeat'
   return 'active'
 }
 
 /** Stardates left before the mission clock runs out, floored at 0 for display. */
-export function stardateRemaining(stardate: number): number {
-  return Math.max(0, MISSION_DEADLINE - stardate)
+export function stardateRemaining(stardate: number, config: MissionConfig = DEFAULT_MISSION_CONFIG): number {
+  return Math.max(0, missionDeadline(config) - stardate)
 }
 
 /** Which of the two ways a defeat happened - drives which message the end screen shows. */

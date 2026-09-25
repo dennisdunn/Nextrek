@@ -1,13 +1,15 @@
 import { useCallback, useRef, useState } from 'react'
+import type { Difficulty } from '../balance'
 import type { NodeId } from '../graph/UndoGraph'
 import { applyCombatResult } from '../hunt/galaxy'
 import { HuntPhase, type BridgeTab, type Encounter } from '../hunt/HuntPhase'
+import { missionDeadline } from '../hunt/mission'
 import { useGalaxy } from '../hunt/useGalaxy'
 import type { CombatResult, LiveCombatState } from '../kill/KillPhase'
-import { HOSTILE_HULL_HEALTH } from '../kill/loadout'
 import { EndScreen } from './EndScreen'
 
 export interface GameShellProps {
+  difficulty: Difficulty
   /** Starts a fresh mission - the parent remounts this component (a new galaxy, all state reset) in response. */
   onNewGame: () => void
 }
@@ -23,9 +25,10 @@ export interface GameShellProps {
  * a fight. Once the mission is decided (see hunt/mission.ts), EndScreen
  * replaces it outright - there's nothing left to click through to.
  */
-export function GameShell({ onNewGame }: GameShellProps) {
-  const controller = useGalaxy()
-  const { galaxy, state, status, defeatReason, moveTo, resolveEncounter } = controller
+export function GameShell({ difficulty, onNewGame }: GameShellProps) {
+  const controller = useGalaxy({ difficulty })
+  const { galaxy, state, status, defeatReason, difficultyPreset, missionConfig, moveTo, resolveEncounter } =
+    controller
   const [encounter, setEncounter] = useState<Encounter | null>(null)
   const [activeTab, setActiveTab] = useState<BridgeTab>('sciences')
   // Updated every tick by KillPhase, out-of-band from React state - a fight
@@ -89,13 +92,15 @@ export function GameShell({ onNewGame }: GameShellProps) {
         liveCombatRef.current = null
         setEncounter({
           sectorId: landedAt,
-          hostileHealths: sector.hostileHealths ?? Array(sector.hostileCount).fill(HOSTILE_HULL_HEALTH),
+          hostileHealths: sector.hostileHealths ?? Array(sector.hostileCount).fill(difficultyPreset.hostileHullHealth),
           hasStarHazard: sector.hasStarHazard,
+          hostileWeaponDamage: difficultyPreset.hostileWeaponDamage,
+          hostileFireCooldownMs: difficultyPreset.hostileFireCooldownMs,
         })
         setActiveTab('tactical')
       }
     },
-    [moveTo, galaxy, encounter, disengage, state.torpedoes],
+    [moveTo, galaxy, encounter, disengage, state.torpedoes, difficultyPreset],
   )
 
   const handleResolved = useCallback(
@@ -131,7 +136,9 @@ export function GameShell({ onNewGame }: GameShellProps) {
         status={status === 'victory' ? 'victory' : 'defeat'}
         defeatReason={defeatReason}
         hostilesDestroyed={state.hostilesDestroyed}
+        hostileQuota={missionConfig.hostileQuota}
         stardate={state.stardate}
+        missionDeadline={missionDeadline(missionConfig)}
         onNewGame={onNewGame}
       />
     )

@@ -190,3 +190,78 @@ export const ROTATION_SPEED = 220 // degrees/sec
 export const THRUST_ACCEL = 180 // px/sec^2
 export const MAX_SPEED = 260 // px/sec
 export const DRAG = 0.35 // fraction of velocity bled off per second - arcade feel, not true inertia
+
+// ---------------------------------------------------------------------------
+// Difficulty presets (hunt/useGalaxy.ts, game/GameShell.tsx, game/StartScreen.tsx)
+// ---------------------------------------------------------------------------
+
+export type Difficulty = 'easy' | 'normal' | 'hard'
+
+export interface DifficultyPreset {
+  hostileDensity: number
+  anomalyDensity: number
+  starbaseDensity: number
+  starHazardDensity: number
+  hostileQuota: number
+  stardateBudget: number
+  hostileHullHealth: number
+  hostileWeaponDamage: number
+  hostileFireCooldownMs: number
+  maxHostilesPerSector: number
+  startingEnergy: number
+  startingTorpedoes: number
+}
+
+/**
+ * Chosen at mission start (see StartScreen.tsx) and threaded through galaxy
+ * seeding, the mission clock/quota, and hostile combat stats. `normal` is
+ * exactly today's defaults above - read directly rather than restated, so
+ * they can't drift out of sync. `easy`/`hard` were picked from a headless
+ * Monte Carlo sweep (src/__balanceSim.test.ts, `npm run sim:balance`) rather
+ * than guesswork: at 1500 trials each, normal wins ~9-11% of missions,
+ * easy ~37%, hard ~3-4%.
+ */
+export const DIFFICULTY_PRESETS: Record<Difficulty, DifficultyPreset> = {
+  easy: {
+    hostileDensity: 0.08,
+    anomalyDensity: 0.06,
+    starbaseDensity: 0.1,
+    starHazardDensity: 0.05,
+    hostileQuota: 10,
+    stardateBudget: 30,
+    hostileHullHealth: 30,
+    hostileWeaponDamage: 6,
+    hostileFireCooldownMs: 1800,
+    maxHostilesPerSector: 2,
+    startingEnergy: 1400,
+    startingTorpedoes: 14,
+  },
+  normal: {
+    hostileDensity: HOSTILE_DENSITY,
+    anomalyDensity: ANOMALY_DENSITY,
+    starbaseDensity: STARBASE_DENSITY,
+    starHazardDensity: STAR_HAZARD_DENSITY,
+    hostileQuota: HOSTILE_QUOTA,
+    stardateBudget: STARDATE_BUDGET,
+    hostileHullHealth: HOSTILE_HULL_HEALTH,
+    hostileWeaponDamage: HOSTILE_WEAPON_DAMAGE,
+    hostileFireCooldownMs: HOSTILE_FIRE_COOLDOWN_MS,
+    maxHostilesPerSector: MAX_HOSTILES_PER_SECTOR,
+    startingEnergy: STARTING_ENERGY,
+    startingTorpedoes: STARTING_TORPEDOES,
+  },
+  hard: {
+    hostileDensity: 0.18,
+    anomalyDensity: 0.1,
+    starbaseDensity: 0.04,
+    starHazardDensity: 0.14,
+    hostileQuota: 18,
+    stardateBudget: 17,
+    hostileHullHealth: 50,
+    hostileWeaponDamage: 11,
+    hostileFireCooldownMs: 1250,
+    maxHostilesPerSector: 3,
+    startingEnergy: 900,
+    startingTorpedoes: 8,
+  },
+}
