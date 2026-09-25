@@ -27,7 +27,8 @@ const DIFFICULTY_COPY: Record<Difficulty, { label: string; body: string }> = {
 export function StartScreen({ onSelect }: StartScreenProps) {
   return (
     <div className="start-screen">
-      <h1>Subspace Wumpus</h1>
+      <h1>Nextrek</h1>
+      <p className="start-screen__subtitle">Subspace Wumpus</p>
       <p>Choose your mission difficulty.</p>
       <div className="start-screen__options">
         {(Object.keys(DIFFICULTY_COPY) as Difficulty[]).map((difficulty) => (
