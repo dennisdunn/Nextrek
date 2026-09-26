@@ -202,6 +202,38 @@ describe('allocateEnergy', () => {
 
     expect(result.current.state.energy.shields).toBe(50)
   })
+
+  it('credits a mid-combat decrease at REFUND_EFFICIENCY instead of 1:1 - closes the drag-to-zero loophole', () => {
+    const { result } = makeGalaxy()
+
+    act(() => result.current.allocateEnergy('shields', 40))
+    expect(result.current.state.energy).toEqual({ reserve: STARTING_ENERGY - 40, shields: 40, phasers: 0 })
+
+    act(() => result.current.allocateEnergy('shields', 10, true))
+
+    // Only the 30-unit decrease is lossy - the 10 units still allocated
+    // aren't touched, so this isn't the same as ending the encounter and
+    // refunding the whole leftover.
+    const expectedReserve = STARTING_ENERGY - 40 + 30 * REFUND_EFFICIENCY
+    expect(result.current.state.energy).toEqual({ reserve: expectedReserve, shields: 10, phasers: 0 })
+  })
+
+  it('still credits a decrease at full value outside combat', () => {
+    const { result } = makeGalaxy()
+
+    act(() => result.current.allocateEnergy('shields', 40))
+    act(() => result.current.allocateEnergy('shields', 10, false))
+
+    expect(result.current.state.energy).toEqual({ reserve: STARTING_ENERGY - 10, shields: 10, phasers: 0 })
+  })
+
+  it('still credits an in-combat increase at full cost - only decreases are lossy', () => {
+    const { result } = makeGalaxy()
+
+    act(() => result.current.allocateEnergy('shields', 40, true))
+
+    expect(result.current.state.energy).toEqual({ reserve: STARTING_ENERGY - 40, shields: 40, phasers: 0 })
+  })
 })
 
 describe('adjustEnergy', () => {

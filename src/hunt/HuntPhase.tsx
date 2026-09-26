@@ -188,7 +188,7 @@ export function HuntPhase({
           subsystems={state.subsystems}
           torpedoes={state.torpedoes}
           startingEnergy={difficultyPreset.startingEnergy}
-          onAllocate={allocateEnergy}
+          onAllocate={(subsystem, level) => allocateEnergy(subsystem, level, Boolean(encounter))}
         />
         <CommsPanel log={state.log} />
       </div>

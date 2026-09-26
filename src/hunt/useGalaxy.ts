@@ -316,11 +316,32 @@ export function useGalaxy(options?: UseGalaxyOptions) {
     bump()
   }, [galaxy, state.warpEngaged, state.energy.reserve, state.subsystems.warpDrive, appendLog, bump])
 
+  /**
+   * `inCombat` (true while an encounter is active - see GameShell's
+   * `encounter` state) makes a *decrease* pay the same REFUND_EFFICIENCY
+   * rate that standing shields/phasers down at the end of an encounter
+   * already does, instead of the normal 1:1 reserve credit. Without this,
+   * dragging the Engineering slider down right before a fight resolves
+   * would let the player reclaim mid-fight energy at full value - the
+   * exact cost resolveEncounter's own refund is supposed to impose on
+   * whatever's left unspent. Outside combat there's no such fight to time
+   * against, so a decrease is still a plain, lossless reallocation.
+   */
   const allocateEnergy = useCallback(
-    (subsystem: Subsystem, targetLevel: number) => {
+    (subsystem: Subsystem, targetLevel: number, inCombat = false) => {
       setState((s) => {
         const health = subsystem === 'shields' ? s.subsystems.shieldGenerator : s.subsystems.phaserArray
         const maxLevel = 100 * systemEfficiency(health)
+        const current = s.energy[subsystem]
+        const available = s.energy.reserve + current
+        const next = Math.max(0, Math.min(targetLevel, available, maxLevel))
+        if (inCombat && next < current) {
+          const decrease = current - next
+          return {
+            ...s,
+            energy: { ...s.energy, [subsystem]: next, reserve: s.energy.reserve + decrease * REFUND_EFFICIENCY },
+          }
+        }
         return { ...s, energy: allocate(s.energy, subsystem, targetLevel, maxLevel) }
       })
     },
@@ -329,11 +350,12 @@ export function useGalaxy(options?: UseGalaxyOptions) {
 
   /**
    * The keyboard shortcuts' version of allocateEnergy (see ControlsPanel.tsx's
-   * Q/E bindings) - adds to whatever the subsystem is currently allocated
+   * H/P bindings) - adds to whatever the subsystem is currently allocated
    * instead of setting an absolute target. Reads the current level from the
    * functional setState updater rather than a closed-over `state.energy`, so
    * back-to-back presses each add on top of the other's result instead of
-   * racing against a stale value.
+   * racing against a stale value. Increment-only, so it never needs the
+   * lossy-decrease handling above.
    */
   const adjustEnergy = useCallback((subsystem: Subsystem, amount: number) => {
     setState((s) => {
