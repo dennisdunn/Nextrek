@@ -45,6 +45,8 @@ export function GameShell({ difficulty, onNewGame }: GameShellProps) {
       leftoverPhaserEnergy: number,
       hullDamageTaken: number,
       torpedoesRemaining: number,
+      /** True only for a real kill-phase defeat (hull to 0) - never set when fleeing, which by definition means the ship is still alive. */
+      shipDestroyed: boolean,
     ) => {
       const sector = galaxy.getNode(sectorId)
       if (sector) galaxy.setNode(sectorId, applyCombatResult(sector, hostileHealthsRemaining))
@@ -54,7 +56,14 @@ export function GameShell({ difficulty, onNewGame }: GameShellProps) {
       const hostilesKilled = hostileHealthsAtStart.filter(
         (health, i) => health > 0 && hostileHealthsRemaining[i] <= 0,
       ).length
-      resolveEncounter(hullDamageTaken, leftoverShieldEnergy, leftoverPhaserEnergy, torpedoesRemaining, hostilesKilled)
+      resolveEncounter(
+        hullDamageTaken,
+        leftoverShieldEnergy,
+        leftoverPhaserEnergy,
+        torpedoesRemaining,
+        hostilesKilled,
+        shipDestroyed,
+      )
       liveCombatRef.current = null
       setEncounter(null)
       setActiveTab('sciences')
@@ -84,6 +93,9 @@ export function GameShell({ difficulty, onNewGame }: GameShellProps) {
           live?.phaserEnergy ?? 0,
           live?.hullDamageTaken ?? 0,
           live?.torpedoesRemaining ?? state.torpedoes,
+          // Fleeing means moving away under your own power - the ship is
+          // still alive by definition, whatever damage it's carrying.
+          false,
         )
       }
 
@@ -114,6 +126,7 @@ export function GameShell({ difficulty, onNewGame }: GameShellProps) {
         result.leftoverPhaserEnergy,
         result.hullDamageTaken,
         result.torpedoesRemaining,
+        result.outcome === 'defeat',
       )
     },
     [encounter, disengage],

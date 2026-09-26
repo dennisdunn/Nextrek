@@ -39,6 +39,8 @@ export interface HuntState {
   torpedoes: number
   /** Hostiles destroyed so far this mission, toward mission.ts's HOSTILE_QUOTA. */
   hostilesDestroyed: number
+  /** Set once a kill-phase encounter actually ends in the player's hull reaching 0 - a third, sticky way to lose (see resolveEncounter). */
+  shipDestroyed: boolean
   visited: Set<NodeId>
   /** Sectors a long-range scan has revealed - what the strategic map shows, beyond what's been visited. */
   scanned: Set<NodeId>
@@ -109,6 +111,7 @@ export function useGalaxy(options?: UseGalaxyOptions) {
     subsystems: fullSubsystemHealth(),
     torpedoes: preset.startingTorpedoes,
     hostilesDestroyed: 0,
+    shipDestroyed: false,
     visited: new Set([home]),
     scanned: new Set(),
     scannedAnomalies: new Set(),
@@ -147,9 +150,24 @@ export function useGalaxy(options?: UseGalaxyOptions) {
   const totalEnergy = state.energy.reserve + state.energy.shields + state.energy.phasers
   const cheapestMoveCost = MOVE_COST_NORMAL * degradedCostMultiplier(state.subsystems.impulseEngines)
   const stranded = isStranded(totalEnergy, cheapestMoveCost)
-  const status = timeQuotaStatus !== 'active' ? timeQuotaStatus : stranded ? 'defeat' : 'active'
+  // Ship-destroyed takes priority over the other two: it's a discrete event
+  // that already happened (see resolveEncounter), not a numeric threshold
+  // that could in principle resolve either way depending on when it's read.
+  const status = state.shipDestroyed
+    ? 'defeat'
+    : timeQuotaStatus !== 'active'
+      ? timeQuotaStatus
+      : stranded
+        ? 'defeat'
+        : 'active'
   const defeatReason: DefeatReason | null =
-    status !== 'defeat' ? null : timeQuotaStatus === 'defeat' ? 'timeout' : 'stranded'
+    status !== 'defeat'
+      ? null
+      : state.shipDestroyed
+        ? 'destroyed'
+        : timeQuotaStatus === 'defeat'
+          ? 'timeout'
+          : 'stranded'
 
   const moveTo = useCallback(
     (target: NodeId): NodeId | false => {
@@ -323,6 +341,8 @@ export function useGalaxy(options?: UseGalaxyOptions) {
       leftoverPhaserEnergy: number,
       torpedoesRemaining: number,
       hostilesKilled: number,
+      /** True only when this encounter ended with the player's hull reaching 0 - never for a fled or won fight. */
+      shipDestroyed = false,
     ) => {
       const current = stateRef.current
       const { subsystems, damagedSystem } = applySubsystemWear(current.subsystems, hullDamageTaken)
@@ -345,7 +365,13 @@ export function useGalaxy(options?: UseGalaxyOptions) {
         energy,
         torpedoes: torpedoesRemaining,
         hostilesDestroyed: s.hostilesDestroyed + hostilesKilled,
+        shipDestroyed: s.shipDestroyed || shipDestroyed,
       }))
+
+      if (shipDestroyed) {
+        appendLog('Hull breach - the ship is lost.')
+        return
+      }
 
       const recovered = Math.round(Math.max(0, leftoverShieldEnergy + leftoverPhaserEnergy) * REFUND_EFFICIENCY)
       appendLog(

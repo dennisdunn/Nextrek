@@ -54,8 +54,8 @@ export function stardateRemaining(stardate: number, config: MissionConfig = DEFA
   return Math.max(0, missionDeadline(config) - stardate)
 }
 
-/** Which of the two ways a defeat happened - drives which message the end screen shows. */
-export type DefeatReason = 'timeout' | 'stranded'
+/** Which way a defeat happened - drives which message the end screen shows. */
+export type DefeatReason = 'timeout' | 'stranded' | 'destroyed'
 
 /**
  * True once no combination of reserve, shields, and phasers can cover even

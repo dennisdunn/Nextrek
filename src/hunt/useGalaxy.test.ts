@@ -244,6 +244,20 @@ describe('resolveEncounter', () => {
     const totalHealth = Object.values(result.current.state.subsystems).reduce((a, b) => a + b, 0)
     expect(totalHealth).toBe(6 * 100 - 30)
   })
+
+  it('a ship-destroyed encounter logs a hull-breach message instead of the ordinary resolution chatter', () => {
+    const { result } = makeGalaxy()
+
+    act(() => {
+      result.current.resolveEncounter(100, 0, 0, STARTING_TORPEDOES, 1, true)
+    })
+
+    expect(result.current.state.shipDestroyed).toBe(true)
+    // The kill still counts toward the end screen's tally...
+    expect(result.current.state.hostilesDestroyed).toBe(1)
+    // ...but the log reports the loss, not the usual refund/quota/damage lines.
+    expect(result.current.state.log.at(-1)).toBe('Hull breach - the ship is lost.')
+  })
 })
 
 describe('longRangeScan / subspaceScan', () => {
@@ -327,5 +341,30 @@ describe('status', () => {
     expect(result.current.state.energy.reserve).toBeLessThan(MOVE_COST_NORMAL)
     expect(result.current.status).toBe('defeat')
     expect(result.current.defeatReason).toBe('stranded')
+  })
+
+  it("reports a destroyed defeat once a kill-phase encounter ends in the ship's destruction", () => {
+    const { result } = makeGalaxy()
+
+    act(() => {
+      result.current.resolveEncounter(100, 0, 0, STARTING_TORPEDOES, 0, true)
+    })
+
+    expect(result.current.status).toBe('defeat')
+    expect(result.current.defeatReason).toBe('destroyed')
+  })
+
+  it('a destroyed ship still reports defeat even if that same encounter met the hostile quota', () => {
+    // Priority test: victory is normally checked first (see mission.ts's
+    // missionStatus), but a ship that didn't survive the fight can't have
+    // won it - shipDestroyed has to outrank a simultaneously-met quota.
+    const { result } = makeGalaxy()
+
+    act(() => {
+      result.current.resolveEncounter(100, 0, 0, STARTING_TORPEDOES, HOSTILE_QUOTA, true)
+    })
+
+    expect(result.current.status).toBe('defeat')
+    expect(result.current.defeatReason).toBe('destroyed')
   })
 })

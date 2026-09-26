@@ -26,6 +26,10 @@ const DEFEAT_COPY: Record<DefeatReason, { heading: string; body: string }> = {
     heading: 'Stranded',
     body: "Not enough energy left to move - not even by standing down shields and phasers. The ship drifts, and that's the end of the mission.",
   },
+  destroyed: {
+    heading: 'Ship destroyed',
+    body: 'The hull gave out before the hostiles did. The mission ends here.',
+  },
 }
 
 /** Full replacement for the bridge HUD once the mission is decided - nothing left to click through to. */
