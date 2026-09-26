@@ -11,7 +11,7 @@ export interface ControlsPanelProps {
   warpLocked: boolean
   warpOffline: boolean
   onToggleWarp: () => void
-  /** Adds ENERGY_ALLOCATION_STEP units to a subsystem's current allocation - increment-only (Q/E), the same way combat itself only ever spends shields/phasers down. Standing a subsystem down again is the slider's job, not a keyboard shortcut. */
+  /** Adds ENERGY_ALLOCATION_STEP units to a subsystem's current allocation - increment-only (H/P, no visible control), the same way combat itself only ever spends shields/phasers down. Standing a subsystem down again is the Engineering slider's job, not a keyboard shortcut. */
   onAdjustEnergy: (subsystem: Subsystem, amount: number) => void
 }
 
@@ -61,10 +61,10 @@ export function ControlsPanel({
         case 'i':
           if (warpEngaged && !warpDisabled) onToggleWarp()
           break
-        case 'q':
+        case 'h':
           onAdjustEnergy('shields', ENERGY_ALLOCATION_STEP)
           break
-        case 'e':
+        case 'p':
           onAdjustEnergy('phasers', ENERGY_ALLOCATION_STEP)
           break
       }
@@ -90,22 +90,6 @@ export function ControlsPanel({
         title={warpTitle ?? (warpEngaged ? 'Impulse (I)' : 'Warp (W)')}
       >
         {warpEngaged ? 'Impulse' : 'Warp'}
-      </button>
-      <button
-        type="button"
-        className="btn-eng"
-        onClick={() => onAdjustEnergy('shields', ENERGY_ALLOCATION_STEP)}
-        title={`Add ${ENERGY_ALLOCATION_STEP} energy to shields (Q)`}
-      >
-        Shields +{ENERGY_ALLOCATION_STEP}
-      </button>
-      <button
-        type="button"
-        className="btn-eng"
-        onClick={() => onAdjustEnergy('phasers', ENERGY_ALLOCATION_STEP)}
-        title={`Add ${ENERGY_ALLOCATION_STEP} energy to phasers (E)`}
-      >
-        Phasers +{ENERGY_ALLOCATION_STEP}
       </button>
       <div className="controls-spacer" />
     </Panel>
