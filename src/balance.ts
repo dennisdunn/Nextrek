@@ -191,6 +191,9 @@ export const COMMS_LOG_LIMIT = 20
 /** Reserve power bar reads as critically low below this percentage. */
 export const LOW_POWER_THRESHOLD = 20
 
+/** Units of shields or phasers added to the current allocation per keyboard shortcut press (Q/E) - see ControlsPanel.tsx. */
+export const ENERGY_ALLOCATION_STEP = 10
+
 // ---------------------------------------------------------------------------
 // Player ship handling (kill/input.ts)
 // ---------------------------------------------------------------------------

@@ -328,6 +328,22 @@ export function useGalaxy(options?: UseGalaxyOptions) {
   )
 
   /**
+   * The keyboard shortcuts' version of allocateEnergy (see ControlsPanel.tsx's
+   * Q/E bindings) - adds to whatever the subsystem is currently allocated
+   * instead of setting an absolute target. Reads the current level from the
+   * functional setState updater rather than a closed-over `state.energy`, so
+   * back-to-back presses each add on top of the other's result instead of
+   * racing against a stale value.
+   */
+  const adjustEnergy = useCallback((subsystem: Subsystem, amount: number) => {
+    setState((s) => {
+      const health = subsystem === 'shields' ? s.subsystems.shieldGenerator : s.subsystems.phaserArray
+      const maxLevel = 100 * systemEfficiency(health)
+      return { ...s, energy: allocate(s.energy, subsystem, s.energy[subsystem] + amount, maxLevel) }
+    })
+  }, [])
+
+  /**
    * Fold a finished (or fled) encounter back into ship state: refund
    * whatever shield/phaser energy survived, and wear down a subsystem in
    * proportion to hull damage taken. One combined update rather than two
@@ -449,6 +465,7 @@ export function useGalaxy(options?: UseGalaxyOptions) {
     moveTo,
     toggleWarp,
     allocateEnergy,
+    adjustEnergy,
     resolveEncounter,
     longRangeScan,
     subspaceScan,

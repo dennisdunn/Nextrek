@@ -204,6 +204,43 @@ describe('allocateEnergy', () => {
   })
 })
 
+describe('adjustEnergy', () => {
+  it('adds to the current allocation instead of setting an absolute level', () => {
+    const { result } = makeGalaxy()
+
+    act(() => result.current.adjustEnergy('shields', 10))
+    expect(result.current.state.energy).toEqual({ reserve: STARTING_ENERGY - 10, shields: 10, phasers: 0 })
+
+    act(() => result.current.adjustEnergy('shields', 10))
+    expect(result.current.state.energy).toEqual({ reserve: STARTING_ENERGY - 20, shields: 20, phasers: 0 })
+  })
+
+  it('compounds correctly across repeated presses batched into one render', () => {
+    const { result } = makeGalaxy()
+
+    act(() => {
+      result.current.adjustEnergy('phasers', 10)
+      result.current.adjustEnergy('phasers', 10)
+      result.current.adjustEnergy('phasers', 10)
+    })
+
+    expect(result.current.state.energy).toEqual({ reserve: STARTING_ENERGY - 30, shields: 0, phasers: 30 })
+  })
+
+  it("clamps to the subsystem's health-scaled ceiling rather than overdrawing reserve", () => {
+    const { result } = makeGalaxy()
+    vi.spyOn(Math, 'random').mockReturnValue(0.2) // SHIP_SYSTEMS[1] === 'shieldGenerator'
+    act(() => {
+      result.current.resolveEncounter(50, 0, 0, STARTING_TORPEDOES, 0)
+    })
+    expect(result.current.state.subsystems.shieldGenerator).toBe(50)
+
+    act(() => result.current.adjustEnergy('shields', 1000))
+
+    expect(result.current.state.energy.shields).toBe(50)
+  })
+})
+
 describe('resolveEncounter', () => {
   it('keeps a stable function identity across unrelated state changes', () => {
     // Regression test: resolveEncounter used to close over `state` directly,

@@ -72,6 +72,7 @@ export function HuntPhase({
     missionConfig,
     toggleWarp,
     allocateEnergy,
+    adjustEnergy,
     longRangeScan,
     subspaceScan,
   } = controller
@@ -86,6 +87,7 @@ export function HuntPhase({
         warpLocked={Boolean(encounter)}
         warpOffline={state.subsystems.warpDrive <= 0}
         onToggleWarp={toggleWarp}
+        onAdjustEnergy={adjustEnergy}
       />
 
       <div className="main-station">

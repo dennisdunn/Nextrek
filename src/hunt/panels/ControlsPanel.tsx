@@ -1,4 +1,6 @@
 import { useEffect } from 'react'
+import { ENERGY_ALLOCATION_STEP } from '../../balance'
+import type { Subsystem } from '../subsystems'
 import { Panel } from './Panel'
 
 export interface ControlsPanelProps {
@@ -9,6 +11,8 @@ export interface ControlsPanelProps {
   warpLocked: boolean
   warpOffline: boolean
   onToggleWarp: () => void
+  /** Adds ENERGY_ALLOCATION_STEP units to a subsystem's current allocation - increment-only (Q/E), the same way combat itself only ever spends shields/phasers down. Standing a subsystem down again is the slider's job, not a keyboard shortcut. */
+  onAdjustEnergy: (subsystem: Subsystem, amount: number) => void
 }
 
 const FORM_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
@@ -25,6 +29,7 @@ export function ControlsPanel({
   warpLocked,
   warpOffline,
   onToggleWarp,
+  onAdjustEnergy,
 }: ControlsPanelProps) {
   const warpDisabled = warpLocked || warpOffline
   const warpTitle = warpLocked
@@ -56,11 +61,17 @@ export function ControlsPanel({
         case 'i':
           if (warpEngaged && !warpDisabled) onToggleWarp()
           break
+        case 'q':
+          onAdjustEnergy('shields', ENERGY_ALLOCATION_STEP)
+          break
+        case 'e':
+          onAdjustEnergy('phasers', ENERGY_ALLOCATION_STEP)
+          break
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onLongRangeScan, onSubspaceScan, onToggleWarp, warpEngaged, warpDisabled])
+  }, [onLongRangeScan, onSubspaceScan, onToggleWarp, warpEngaged, warpDisabled, onAdjustEnergy])
 
   return (
     <Panel title="Controls" accent="controls" className="controls-panel">
@@ -79,6 +90,22 @@ export function ControlsPanel({
         title={warpTitle ?? (warpEngaged ? 'Impulse (I)' : 'Warp (W)')}
       >
         {warpEngaged ? 'Impulse' : 'Warp'}
+      </button>
+      <button
+        type="button"
+        className="btn-eng"
+        onClick={() => onAdjustEnergy('shields', ENERGY_ALLOCATION_STEP)}
+        title={`Add ${ENERGY_ALLOCATION_STEP} energy to shields (Q)`}
+      >
+        Shields +{ENERGY_ALLOCATION_STEP}
+      </button>
+      <button
+        type="button"
+        className="btn-eng"
+        onClick={() => onAdjustEnergy('phasers', ENERGY_ALLOCATION_STEP)}
+        title={`Add ${ENERGY_ALLOCATION_STEP} energy to phasers (E)`}
+      >
+        Phasers +{ENERGY_ALLOCATION_STEP}
       </button>
       <div className="controls-spacer" />
     </Panel>
