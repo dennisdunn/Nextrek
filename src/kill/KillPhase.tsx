@@ -1,6 +1,11 @@
 import { entityExists } from 'bitecs'
 import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react'
-import { PLAYER_FIRE_COOLDOWN_MS, STAR_DISTANCE_FROM_CENTER } from '../balance'
+import {
+  PLAYER_FIRE_COOLDOWN_MS,
+  PLAYER_SPAWN_SPEED_MAX,
+  PLAYER_SPAWN_SPEED_MIN,
+  STAR_DISTANCE_FROM_CENTER,
+} from '../balance'
 import { bindInput, createInputState, inputSystem, type InputState } from './input'
 import {
   BASE_HULL_HEALTH,
@@ -13,7 +18,7 @@ import {
   TORPEDO_SPEED,
   TORPEDO_TTL_MS,
 } from './loadout'
-import { spawnHazard, spawnHostile, spawnPlayer, spawnProjectile } from './spawn'
+import { pickPlayerSpawnHeading, spawnHazard, spawnHostile, spawnPlayer, spawnProjectile } from './spawn'
 import { ageoutSystem } from './systems/ageout'
 import { boundarySystem } from './systems/boundary'
 import { collisionSystem } from './systems/collision'
@@ -161,9 +166,14 @@ export function KillPhase({
     const world = createKillWorld()
     worldRef.current = world
     const startingLoadout = loadoutFromEnergy(levelsRef.current.shieldLevel, levelsRef.current.phaserLevel)
+    // Picked before the player spawns so its heading can steer clear of
+    // where the star will land - see pickPlayerSpawnHeading.
+    const starAngle = hasStarHazard ? Math.random() * Math.PI * 2 : null
     const playerEid = spawnPlayer(world, {
       x: WIDTH / 2,
       y: HEIGHT / 2,
+      heading: pickPlayerSpawnHeading(starAngle),
+      speed: PLAYER_SPAWN_SPEED_MIN + Math.random() * (PLAYER_SPAWN_SPEED_MAX - PLAYER_SPAWN_SPEED_MIN),
       health: BASE_HULL_HEALTH,
       shieldEnergy: startingLoadout.shieldEnergy,
       phaserEnergy: startingLoadout.phaserEnergy,
@@ -172,11 +182,10 @@ export function KillPhase({
     const hostileEids = hostileHealths.map((health) =>
       spawnHostile(world, { x: Math.random() * WIDTH, y: Math.random() * HEIGHT, health }),
     )
-    if (hasStarHazard) {
-      const angle = Math.random() * Math.PI * 2
+    if (starAngle !== null) {
       spawnHazard(world, {
-        x: WIDTH / 2 + Math.cos(angle) * STAR_DISTANCE_FROM_CENTER,
-        y: HEIGHT / 2 + Math.sin(angle) * STAR_DISTANCE_FROM_CENTER,
+        x: WIDTH / 2 + Math.cos(starAngle) * STAR_DISTANCE_FROM_CENTER,
+        y: HEIGHT / 2 + Math.sin(starAngle) * STAR_DISTANCE_FROM_CENTER,
       })
     }
 

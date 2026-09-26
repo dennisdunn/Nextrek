@@ -159,6 +159,15 @@ export const HOSTILE_HITBOX_RADIUS = 16
 export const HOSTILE_DRIFT_SPEED_MIN = 40
 export const HOSTILE_DRIFT_SPEED_MAX = 80
 
+// The player enters combat already moving, in a random direction at a
+// speed roughly midway to MAX_SPEED - never a standing start, but not
+// already at full thrust either.
+export const PLAYER_SPAWN_SPEED_MIN = 100
+export const PLAYER_SPAWN_SPEED_MAX = 160
+
+/** Degrees of heading, either side of dead-on, excluded from the player's random spawn direction when a star hazard is present - keeps the ship from starting out flying straight into it. */
+export const PLAYER_SPAWN_STAR_CLEARANCE_DEG = 60
+
 /** A hostile's first shot is delayed by a random amount up to this, so a pack doesn't volley in perfect sync on spawn. */
 export const HOSTILE_FIRE_STAGGER_MS = 1000
 
