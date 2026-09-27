@@ -68,8 +68,8 @@ export function StartScreen({ onSelect }: StartScreenProps) {
       <p className="start-screen__subtitle">Subspace Wumpus</p>
 
       <p className="start-screen__description">
-        Hunt the Wumpus meets Asteroids, loosely based on 1971 BASIC <em>Star Trek</em>. Explore a
-        procedurally generated galaxy sector by sector, then drop into real-time combat the
+        Hunt the Wumpus meets Asteroids, loosely based on 1971 BASIC <em>Star Trek</em>. Explore
+        the galaxy sector by sector, then drop into real-time combat the
         moment you run into trouble. Destroy enough hostiles before the mission clock runs
         out - you lose if time runs out, your ship is destroyed, or you're stranded with too
         little energy left to move.
