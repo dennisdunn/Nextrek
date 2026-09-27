@@ -773,6 +773,13 @@
   font-size: 17px;
   line-height: 1.6;
   color: var(--text);
+  /* Overrides .start-screen's inherited text-align:center - every wrapped
+     line stretches to both edges instead of each being independently
+     centered with a ragged left/right edge. text-align-last is spelled
+     out rather than relied on as the (correct) default for justify, so
+     this doesn't silently depend on that default. */
+  text-align: justify;
+  text-align-last: left;
 }
 
 .start-screen > p.start-screen__hint {
