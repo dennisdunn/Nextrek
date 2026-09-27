@@ -762,16 +762,23 @@
 }
 
 .start-screen__body {
-  /* Column by default (phone portrait) - the same stacked order the
-     description and Controls box always had as direct .start-screen
-     children, just now grouped so a wide-viewport media query further
-     down can lay them out as two columns instead without touching the
-     difficulty picker below, which stays full-width either way. */
+  /* Column by default (phone portrait), items in DOM order - description,
+     the difficulty picker, then the Controls box last, since it's
+     reference material nobody has to reach before starting a mission. The
+     min-width:700px media query below switches this to a wrapping row and
+     uses `order` to put the two-column desktop layout (description next
+     to Controls, difficulty picker full-width below both) back, regardless
+     of this DOM order. */
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
   width: 100%;
+}
+
+.start-screen__cta {
+  margin: 0;
+  color: var(--text);
 }
 
 .start-screen__description {
@@ -929,31 +936,54 @@
 /*
  * Two-column start screen for anything wide enough to spare the width
  * (tablet landscape and up) - .start-screen__body's base rule above stacks
- * the description above the Controls box, which on a tablet-landscape-sized
- * viewport (e.g. 1024x768) overflows the screen height and forces a scroll
- * just to reach the difficulty picker below. Side by side, the two share a
- * height instead of adding to one, and the difficulty picker (left as a
- * separate, always-full-width block below .start-screen__body) still gets
- * the room to lay its three cards out in one row rather than wrapping.
- * Placed last for the same reason the block above is - it overrides
- * .start-screen__body/__description/__instructions' base (non-media) rules,
- * which must come first in the file for this to win the cascade.
+ * everything in portrait's preferred order (description, difficulty
+ * picker, Controls box last), which on a tablet-landscape-sized viewport
+ * (e.g. 1024x768) both overflows the screen height and wastes the extra
+ * width landscape actually has. Switching to a wrapping row and giving
+ * each child an explicit `order` reflows it into two rows regardless of
+ * DOM order: description next to the Controls box (sharing a height
+ * instead of adding to one), then the difficulty picker on its own
+ * full-width row below both, still with room for its three cards side by
+ * side. Placed last for the same reason the block above is - it overrides
+ * .start-screen__body/__description/__instructions' base (non-media)
+ * rules, which must come first in the file for this to win the cascade.
  */
 @media (min-width: 700px) {
   .start-screen__body {
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: flex-start;
     justify-content: center;
-    gap: 24px;
+    /* row-gap 16px (vertical, between the wrapped rows) column-gap 24px
+       (horizontal, between description and the Controls box) - matches
+       what the previous non-wrapping two-column layout spent verically
+       between description/instructions and the (then top-level) cta/
+       options blocks, so wrapping cta/options into this same flex
+       container doesn't add net height versus that version. */
+    gap: 16px 24px;
   }
 
   .start-screen__description {
+    order: 1;
     width: auto;
     flex: 1 1 320px;
   }
 
   .start-screen__instructions {
+    order: 2;
     width: auto;
     flex: 0 0 380px;
+  }
+
+  /* Both full-width (flex-basis 100%) so each forces its own new row
+     rather than sitting beside description/instructions on the first. */
+  .start-screen__cta {
+    order: 3;
+    flex: 1 1 100%;
+  }
+
+  .start-screen__options {
+    order: 4;
+    flex: 1 1 100%;
   }
 }
