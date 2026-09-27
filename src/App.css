@@ -38,18 +38,38 @@
   flex: 1 1 300px;
   min-width: 280px;
   min-height: 0;
-  overflow-y: hidden;
+  /* auto, not hidden: on a landscape phone wide enough to stay in this
+     column's 3-column row layout (the max-width:860px breakpoint further
+     down only catches narrow/portrait widths), there isn't always enough
+     height for Status + Engineering + Comms stacked. Status/Engineering's
+     flex-shrink:0 below stops them from being silently crushed to fit -
+     this is what actually lets the leftover overflow become reachable by
+     scrolling the sidebar, rather than "hidden" quietly clipping it. */
+  overflow-y: auto;
 }
 
 /*
- * Controls, Status, and Engineering are all a fixed, content-sized height -
- * only Comms is expected to grow past the fold, so it's the one panel that
- * claims the sidebar's leftover space and scrolls internally (see .log),
- * rather than the whole sidebar needing to scroll as a unit.
+ * Controls, Status, and Engineering are meant to be a fixed, content-sized
+ * height - flex-shrink:0 (below) is what actually enforces that; without
+ * it, a landscape phone short on height silently compresses them instead,
+ * and .panel's own overflow:hidden then clips whatever no longer fits.
+ * Only Comms is expected to grow past the fold, so it's the one panel
+ * that claims the sidebar's leftover space and scrolls internally (see
+ * .log) rather than needing the whole sidebar to scroll - though on a
+ * short enough screen it still shrinks to its min-height floor and lets
+ * the sidebar's own scroll (above) reach the rest.
  */
+.panel--status,
+.panel--engineering {
+  flex-shrink: 0;
+}
+
 .panel--comms {
   flex: 1;
-  min-height: 0;
+  /* A real floor, not 0 - on a short landscape screen this keeps a few
+     lines of the log visible rather than crushing it away entirely; the
+     sidebar's own scroll (above) reaches the rest. */
+  min-height: 110px;
   display: flex;
   flex-direction: column;
 }
