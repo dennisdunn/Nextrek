@@ -152,6 +152,16 @@ export function GameShell({ difficulty, onNewGame }: GameShellProps) {
         hostileQuota={missionConfig.hostileQuota}
         stardate={state.stardate}
         missionDeadline={missionDeadline(missionConfig)}
+        stardateBudget={missionConfig.stardateBudget}
+        resources={{
+          // Combined total, not just reserve - shields/phasers energy
+          // left allocated outside combat is still the player's, at full
+          // value (see subsystems.ts's allocate/isStranded's own note).
+          energyRemaining: state.energy.reserve + state.energy.shields + state.energy.phasers,
+          startingEnergy: difficultyPreset.startingEnergy,
+          torpedoesRemaining: state.torpedoes,
+          startingTorpedoes: difficultyPreset.startingTorpedoes,
+        }}
         onNewGame={onNewGame}
       />
     )

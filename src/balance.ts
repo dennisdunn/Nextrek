@@ -65,6 +65,14 @@ export const HOSTILE_QUOTA = 15
 /** Stardates allotted for the whole mission, starting from STARTING_STARDATE. */
 export const STARDATE_BUDGET = 20
 
+/**
+ * A clean, unhurried, resource-light win scores roughly this - not a hard
+ * cap (see hunt/mission.ts's missionScore): a victory with more hostiles
+ * destroyed than the quota required pushes past it, same as arcade
+ * scoring that keeps counting past a "perfect" run instead of stopping there.
+ */
+export const MISSION_SCORE_MAX = 1000
+
 // ---------------------------------------------------------------------------
 // Ship subsystems (hunt/subsystems.ts)
 // ---------------------------------------------------------------------------

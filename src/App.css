@@ -710,6 +710,12 @@
   min-width: 240px;
 }
 
+.end-screen__score {
+  color: var(--accent);
+  font-size: 20px;
+  font-weight: 700;
+}
+
 .end-screen button {
   margin-top: 8px;
   padding: 10px 24px;

@@ -1,4 +1,4 @@
-import type { DefeatReason, MissionStatus } from '../hunt/mission'
+import { missionScore, type DefeatReason, type MissionResources, type MissionStatus } from '../hunt/mission'
 
 export interface EndScreenProps {
   status: Extract<MissionStatus, 'victory' | 'defeat'>
@@ -9,6 +9,10 @@ export interface EndScreenProps {
   hostileQuota: number
   stardate: number
   missionDeadline: number
+  /** The active difficulty's stardate allotment - see balance.ts's DIFFICULTY_PRESETS. Needed alongside missionDeadline to recover how much of it was actually spent (see hunt/mission.ts's missionScore). */
+  stardateBudget: number
+  /** What's left of the ship's energy/torpedoes at the moment the mission ended - only meaningful (and only shown) on a victory. */
+  resources: MissionResources
   onNewGame: () => void
 }
 
@@ -40,9 +44,15 @@ export function EndScreen({
   hostileQuota,
   stardate,
   missionDeadline,
+  stardateBudget,
+  resources,
   onNewGame,
 }: EndScreenProps) {
   const { heading, body } = status === 'victory' ? VICTORY_COPY : DEFEAT_COPY[defeatReason ?? 'timeout']
+  // A performance readout only makes sense for a completed win - fewest
+  // resources/quickest time/most hostiles are all framed as "how well did
+  // you do it", which a loss doesn't have an answer to.
+  const score = status === 'victory' ? missionScore(hostilesDestroyed, hostileQuota, stardate, stardateBudget, resources) : null
   return (
     <div className={`end-screen end-screen--${status}`}>
       <h1>{heading}</h1>
@@ -56,6 +66,12 @@ export function EndScreen({
         <dd>
           {stardate.toFixed(1)} / {missionDeadline.toFixed(1)}
         </dd>
+        {score !== null && (
+          <>
+            <dt>Mission score</dt>
+            <dd className="end-screen__score">{score}</dd>
+          </>
+        )}
       </dl>
       <button type="button" onClick={onNewGame}>
         New game

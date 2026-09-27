@@ -3,12 +3,22 @@ import {
   HOSTILE_QUOTA,
   isStranded,
   MISSION_DEADLINE,
+  missionScore,
   missionStatus,
   stardateCost,
+  STARDATE_BUDGET,
   stardateRemaining,
   STARTING_STARDATE,
   tacticalAlert,
+  type MissionResources,
 } from './mission'
+
+const FULL_RESOURCES: MissionResources = {
+  energyRemaining: 1000,
+  startingEnergy: 1000,
+  torpedoesRemaining: 10,
+  startingTorpedoes: 10,
+}
 
 describe('stardateCost', () => {
   it('costs less mission time under warp than in normal space', () => {
@@ -67,6 +77,42 @@ describe('stardateRemaining', () => {
 
   it('never goes negative past the deadline', () => {
     expect(stardateRemaining(MISSION_DEADLINE + 10)).toBe(0)
+  })
+})
+
+describe('missionScore', () => {
+  it('scores exactly MISSION_SCORE_MAX for a no-time, full-resources win right at quota', () => {
+    expect(missionScore(HOSTILE_QUOTA, HOSTILE_QUOTA, STARTING_STARDATE, STARDATE_BUDGET, FULL_RESOURCES)).toBe(1000)
+  })
+
+  it('scores a third of MISSION_SCORE_MAX for a win at quota, full time, no resources left', () => {
+    const drained: MissionResources = {
+      energyRemaining: 0,
+      startingEnergy: 1000,
+      torpedoesRemaining: 0,
+      startingTorpedoes: 10,
+    }
+    expect(missionScore(HOSTILE_QUOTA, HOSTILE_QUOTA, MISSION_DEADLINE, STARDATE_BUDGET, drained)).toBe(333)
+  })
+
+  it('rewards destroying more than the quota past MISSION_SCORE_MAX rather than capping at it', () => {
+    const score = missionScore(HOSTILE_QUOTA * 2, HOSTILE_QUOTA, STARTING_STARDATE, STARDATE_BUDGET, FULL_RESOURCES)
+    expect(score).toBeGreaterThan(1000)
+  })
+
+  it('never divides by zero when starting torpedoes is 0', () => {
+    const noTorpedoes: MissionResources = {
+      energyRemaining: 500,
+      startingEnergy: 1000,
+      torpedoesRemaining: 0,
+      startingTorpedoes: 0,
+    }
+    expect(() => missionScore(HOSTILE_QUOTA, HOSTILE_QUOTA, STARTING_STARDATE, STARDATE_BUDGET, noTorpedoes)).not.toThrow()
+    expect(Number.isFinite(missionScore(HOSTILE_QUOTA, HOSTILE_QUOTA, STARTING_STARDATE, STARDATE_BUDGET, noTorpedoes))).toBe(true)
+  })
+
+  it('never divides by zero when hostileQuota is 0', () => {
+    expect(Number.isFinite(missionScore(0, 0, STARTING_STARDATE, STARDATE_BUDGET, FULL_RESOURCES))).toBe(true)
   })
 })
 
