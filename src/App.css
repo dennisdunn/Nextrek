@@ -774,8 +774,14 @@
   color: var(--text);
 }
 
-.start-screen__hint {
-  /* Same accent used for the title, keycaps, and the Easy difficulty label
+.start-screen > p.start-screen__hint {
+  /* Needs the same `.start-screen > p.<class>` shape as .start-screen__subtitle
+     right above - .start-screen > p's own color:var(--text) has higher
+     specificity than a bare .start-screen__hint class selector, so a plain
+     .start-screen__hint rule loses this color override regardless of
+     which one comes later in the file.
+
+     Same accent used for the title, keycaps, and the Easy difficulty label
      - ties this in as a piece of "insider" game knowledge rather than
      plain instructional copy, which is what the plain-text CTA it
      replaced read as. */
