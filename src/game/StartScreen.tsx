@@ -67,52 +67,47 @@ export function StartScreen({ onSelect }: StartScreenProps) {
       <h1>Nextrek</h1>
       <p className="start-screen__subtitle">Subspace Wumpus</p>
 
-      <div className="start-screen__body">
-        <p className="start-screen__description">
-          Hunt the Wumpus meets Asteroids, loosely based on 1971 BASIC <em>Star Trek</em>. Explore a
-          procedurally generated galaxy sector by sector, then drop into real-time combat the
-          moment you run into trouble. Destroy enough hostiles before the mission clock runs
-          out - you lose if time runs out, your ship is destroyed, or you're stranded with too
-          little energy left to move.
-        </p>
+      <p className="start-screen__description">
+        Hunt the Wumpus meets Asteroids, loosely based on 1971 BASIC <em>Star Trek</em>. Explore a
+        procedurally generated galaxy sector by sector, then drop into real-time combat the
+        moment you run into trouble. Destroy enough hostiles before the mission clock runs
+        out - you lose if time runs out, your ship is destroyed, or you're stranded with too
+        little energy left to move.
+      </p>
 
-        {/*
-          On a portrait/phone screen (.start-screen__body stacked as a single
-          column - see App.css), this puts the difficulty picker - the one
-          thing a player actually has to interact with - ahead of the
-          Controls box, which is reference material nobody needs to reach
-          before starting a mission. The `order` properties in the
-          min-width:700px media query put the two-column desktop layout
-          back the way it was (description | Controls, difficulty picker
-          full-width below both) regardless of this DOM order.
-        */}
-        <p className="start-screen__cta">Choose your mission difficulty.</p>
-        <div className="start-screen__options">
-          {(Object.keys(DIFFICULTY_COPY) as Difficulty[]).map((difficulty) => (
-            <button
-              key={difficulty}
-              type="button"
-              className={`start-screen__option start-screen__option--${difficulty}`}
-              onClick={() => onSelect(difficulty)}
-            >
-              <strong>{DIFFICULTY_COPY[difficulty].label}</strong>
-              <span>{DIFFICULTY_COPY[difficulty].body}</span>
-            </button>
+      <p>Choose your mission difficulty.</p>
+      <div className="start-screen__options">
+        {(Object.keys(DIFFICULTY_COPY) as Difficulty[]).map((difficulty) => (
+          <button
+            key={difficulty}
+            type="button"
+            className={`start-screen__option start-screen__option--${difficulty}`}
+            onClick={() => onSelect(difficulty)}
+          >
+            <strong>{DIFFICULTY_COPY[difficulty].label}</strong>
+            <span>{DIFFICULTY_COPY[difficulty].body}</span>
+          </button>
+        ))}
+      </div>
+
+      {/*
+        Underneath the difficulty picker, not beside the description - it's
+        reference material nobody needs before starting a mission, and the
+        3-column grid (see .start-screen__controls in App.css) keeps it
+        short enough that it never has to compete for space with the
+        buttons that actually matter.
+      */}
+      <div className="start-screen__instructions">
+        <h2>Controls</h2>
+        <div className="start-screen__controls">
+          {CONTROLS.map(([key, action]) => (
+            <div className="start-screen__control-row" key={key}>
+              <span className="start-screen__key">{key}</span>
+              <span>{action}</span>
+            </div>
           ))}
         </div>
-
-        <div className="start-screen__instructions">
-          <h2>Controls</h2>
-          <div className="start-screen__controls">
-            {CONTROLS.map(([key, action]) => (
-              <div className="start-screen__control-row" key={key}>
-                <span className="start-screen__key">{key}</span>
-                <span>{action}</span>
-              </div>
-            ))}
-          </div>
-          <p className="start-screen__note">{hint}</p>
-        </div>
+        <p className="start-screen__note">{hint}</p>
       </div>
     </div>
   )
