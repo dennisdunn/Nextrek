@@ -67,25 +67,27 @@ export function StartScreen({ onSelect }: StartScreenProps) {
       <h1>Nextrek</h1>
       <p className="start-screen__subtitle">Subspace Wumpus</p>
 
-      <p className="start-screen__description">
-        Hunt the Wumpus meets Asteroids, loosely based on 1971 BASIC <em>Star Trek</em>. Explore a
-        procedurally generated galaxy sector by sector, then drop into real-time combat the
-        moment you run into trouble. Destroy enough hostiles before the mission clock runs
-        out - you lose if time runs out, your ship is destroyed, or you're stranded with too
-        little energy left to move.
-      </p>
+      <div className="start-screen__body">
+        <p className="start-screen__description">
+          Hunt the Wumpus meets Asteroids, loosely based on 1971 BASIC <em>Star Trek</em>. Explore a
+          procedurally generated galaxy sector by sector, then drop into real-time combat the
+          moment you run into trouble. Destroy enough hostiles before the mission clock runs
+          out - you lose if time runs out, your ship is destroyed, or you're stranded with too
+          little energy left to move.
+        </p>
 
-      <div className="start-screen__instructions">
-        <h2>Controls</h2>
-        <div className="start-screen__controls">
-          {CONTROLS.map(([key, action]) => (
-            <div className="start-screen__control-row" key={key}>
-              <span className="start-screen__key">{key}</span>
-              <span>{action}</span>
-            </div>
-          ))}
+        <div className="start-screen__instructions">
+          <h2>Controls</h2>
+          <div className="start-screen__controls">
+            {CONTROLS.map(([key, action]) => (
+              <div className="start-screen__control-row" key={key}>
+                <span className="start-screen__key">{key}</span>
+                <span>{action}</span>
+              </div>
+            ))}
+          </div>
+          <p className="start-screen__note">{hint}</p>
         </div>
-        <p className="start-screen__note">{hint}</p>
       </div>
 
       <p>Choose your mission difficulty.</p>
