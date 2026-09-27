@@ -162,6 +162,7 @@ export function GameShell({ difficulty, onNewGame }: GameShellProps) {
           torpedoesRemaining: state.torpedoes,
           startingTorpedoes: difficultyPreset.startingTorpedoes,
         }}
+        scoreMultiplier={difficultyPreset.scoreMultiplier}
         onNewGame={onNewGame}
       />
     )

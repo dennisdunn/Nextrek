@@ -99,6 +99,12 @@ function clamp01(fraction: number): number {
  * relative to budget, and energy/torpedoes still in hand relative to what
  * the mission started with (each clamped to [0, 1] - unlike the hostile
  * count, a budget can't meaningfully be "under-spent" past 100%).
+ *
+ * `scoreMultiplier` (the active difficulty's own, from balance.ts's
+ * DIFFICULTY_PRESETS - defaults to 1, Normal's own multiplier) is applied
+ * last, over the whole average - the same relative performance (e.g. a
+ * clean win right at quota) reads higher on Hard than on Easy, rewarding
+ * the harder mission rather than just the raw play.
  */
 export function missionScore(
   hostilesDestroyed: number,
@@ -106,6 +112,7 @@ export function missionScore(
   stardate: number,
   stardateBudget: number,
   resources: MissionResources,
+  scoreMultiplier = 1,
 ): number {
   const hostileFactor = hostileQuota > 0 ? hostilesDestroyed / hostileQuota : 1
   const stardateUsed = stardate - STARTING_STARDATE
@@ -114,5 +121,5 @@ export function missionScore(
   const torpedoFactor =
     resources.startingTorpedoes > 0 ? clamp01(resources.torpedoesRemaining / resources.startingTorpedoes) : 1
   const resourceFactor = (energyFactor + torpedoFactor) / 2
-  return Math.round(((hostileFactor + timeFactor + resourceFactor) / 3) * MISSION_SCORE_MAX)
+  return Math.round(((hostileFactor + timeFactor + resourceFactor) / 3) * MISSION_SCORE_MAX * scoreMultiplier)
 }

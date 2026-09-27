@@ -114,6 +114,25 @@ describe('missionScore', () => {
   it('never divides by zero when hostileQuota is 0', () => {
     expect(Number.isFinite(missionScore(0, 0, STARTING_STARDATE, STARDATE_BUDGET, FULL_RESOURCES))).toBe(true)
   })
+
+  it('applies scoreMultiplier over the whole average, defaulting to 1', () => {
+    const base = missionScore(HOSTILE_QUOTA, HOSTILE_QUOTA, STARTING_STARDATE, STARDATE_BUDGET, FULL_RESOURCES)
+    const explicitNormal = missionScore(
+      HOSTILE_QUOTA,
+      HOSTILE_QUOTA,
+      STARTING_STARDATE,
+      STARDATE_BUDGET,
+      FULL_RESOURCES,
+      1,
+    )
+    expect(explicitNormal).toBe(base)
+
+    const hard = missionScore(HOSTILE_QUOTA, HOSTILE_QUOTA, STARTING_STARDATE, STARDATE_BUDGET, FULL_RESOURCES, 1.5)
+    expect(hard).toBe(Math.round(base * 1.5))
+
+    const easy = missionScore(HOSTILE_QUOTA, HOSTILE_QUOTA, STARTING_STARDATE, STARDATE_BUDGET, FULL_RESOURCES, 0.75)
+    expect(easy).toBe(Math.round(base * 0.75))
+  })
 })
 
 describe('isStranded', () => {

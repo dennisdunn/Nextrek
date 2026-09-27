@@ -13,6 +13,8 @@ export interface EndScreenProps {
   stardateBudget: number
   /** What's left of the ship's energy/torpedoes at the moment the mission ended - only meaningful (and only shown) on a victory. */
   resources: MissionResources
+  /** The active difficulty's own multiplier on the mission score - see balance.ts's DIFFICULTY_PRESETS. */
+  scoreMultiplier: number
   onNewGame: () => void
 }
 
@@ -46,13 +48,17 @@ export function EndScreen({
   missionDeadline,
   stardateBudget,
   resources,
+  scoreMultiplier,
   onNewGame,
 }: EndScreenProps) {
   const { heading, body } = status === 'victory' ? VICTORY_COPY : DEFEAT_COPY[defeatReason ?? 'timeout']
   // A performance readout only makes sense for a completed win - fewest
   // resources/quickest time/most hostiles are all framed as "how well did
   // you do it", which a loss doesn't have an answer to.
-  const score = status === 'victory' ? missionScore(hostilesDestroyed, hostileQuota, stardate, stardateBudget, resources) : null
+  const score =
+    status === 'victory'
+      ? missionScore(hostilesDestroyed, hostileQuota, stardate, stardateBudget, resources, scoreMultiplier)
+      : null
   return (
     <div className={`end-screen end-screen--${status}`}>
       <h1>{heading}</h1>

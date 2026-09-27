@@ -66,10 +66,12 @@ export const HOSTILE_QUOTA = 15
 export const STARDATE_BUDGET = 20
 
 /**
- * A clean, unhurried, resource-light win scores roughly this - not a hard
- * cap (see hunt/mission.ts's missionScore): a victory with more hostiles
- * destroyed than the quota required pushes past it, same as arcade
- * scoring that keeps counting past a "perfect" run instead of stopping there.
+ * A clean, unhurried, resource-light Normal-difficulty win scores roughly
+ * this - not a hard cap (see hunt/mission.ts's missionScore): a victory
+ * with more hostiles destroyed than the quota required pushes past it,
+ * same as arcade scoring that keeps counting past a "perfect" run instead
+ * of stopping there. Easy/Hard read proportionally lower/higher for the
+ * same relative performance - see DIFFICULTY_PRESETS' scoreMultiplier.
  */
 export const MISSION_SCORE_MAX = 1000
 
@@ -230,6 +232,8 @@ export interface DifficultyPreset {
   maxHostilesPerSector: number
   startingEnergy: number
   startingTorpedoes: number
+  /** Multiplies the victory mission score (hunt/mission.ts's missionScore) - a harder mission scores more for the same relative performance. */
+  scoreMultiplier: number
 }
 
 /**
@@ -255,6 +259,7 @@ export const DIFFICULTY_PRESETS: Record<Difficulty, DifficultyPreset> = {
     maxHostilesPerSector: 2,
     startingEnergy: 1400,
     startingTorpedoes: 14,
+    scoreMultiplier: 0.75,
   },
   normal: {
     hostileDensity: HOSTILE_DENSITY,
@@ -269,6 +274,7 @@ export const DIFFICULTY_PRESETS: Record<Difficulty, DifficultyPreset> = {
     maxHostilesPerSector: MAX_HOSTILES_PER_SECTOR,
     startingEnergy: STARTING_ENERGY,
     startingTorpedoes: STARTING_TORPEDOES,
+    scoreMultiplier: 1,
   },
   hard: {
     hostileDensity: 0.18,
@@ -283,5 +289,6 @@ export const DIFFICULTY_PRESETS: Record<Difficulty, DifficultyPreset> = {
     maxHostilesPerSector: 3,
     startingEnergy: 900,
     startingTorpedoes: 8,
+    scoreMultiplier: 1.5,
   },
 }
