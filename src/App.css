@@ -763,14 +763,15 @@
 
 .start-screen__description {
   /* width:100% (not just max-width) so it actually shrinks to the
-     available space on a narrow phone instead of trying to hold 46ch of
-     unbroken preferred width and running text off the right edge - a
-     non-stretched flex item's width otherwise resolves from content, not
-     from its container. */
+     available space on a narrow phone instead of trying to hold this
+     max-width and running text off the right edge - a non-stretched flex
+     item's width otherwise resolves from content, not from its container.
+     Matches .start-screen__instructions's max-width - the widest box on
+     the screen - rather than its own narrower 46ch, so the two align. */
   width: 100%;
-  max-width: 46ch;
-  font-size: 14px;
-  line-height: 1.5;
+  max-width: 760px;
+  font-size: 17px;
+  line-height: 1.6;
   color: var(--text);
 }
 
@@ -855,13 +856,22 @@
   flex-wrap: wrap;
   justify-content: center;
   margin-top: 8px;
+  /* Same width as .start-screen__description/__instructions, so all three
+     boxes line up instead of this one sitting narrower and centered in
+     the middle of the other two. */
+  width: 100%;
+  max-width: 760px;
 }
 
 .start-screen__option {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: 220px;
+  /* flex-grow, not a fixed width - the three cards spread out to fill
+     .start-screen__options's full width rather than clustering at their
+     old fixed 220px and leaving that width unused. 200px is only the
+     floor before wrapping to fewer per row on a narrow screen. */
+  flex: 1 1 200px;
   padding: 16px;
   text-align: left;
   font-size: 13px;
