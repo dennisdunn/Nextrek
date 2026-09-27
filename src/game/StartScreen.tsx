@@ -33,6 +33,8 @@ const CONTROLS: [string, string][] = [
   ['Arrows / WASD', 'Steer & thrust'],
   ['Space', 'Fire phasers'],
   ['Enter / T', 'Fire a homing torpedo'],
+  ['H', 'Add energy to shields'],
+  ['P', 'Add energy to phasers'],
 ]
 
 /** One is shown at random per visit to this screen - see randomHint() below. */
