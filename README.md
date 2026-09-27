@@ -15,6 +15,8 @@ Nextrek alternates between two phases:
 
 **Objective:** destroy enough hostiles before the mission clock runs out. **You lose** if the clock runs out first, if your ship is destroyed in combat, or if you become stranded — too little energy left to make even the cheapest possible move.
 
+**Score:** a win is rated on how efficiently you pulled it off, not just that you did — hostiles destroyed relative to quota (killing more than required keeps adding to the score, it's not free), time spent relative to the mission clock, and energy/torpedoes still in reserve at the end all count equally. A clean, unhurried, resource-light win at exactly quota scores around 1000; overkill pushes it higher.
+
 Every mission starts in a random, clear sector, and ship subsystems (warp drive, shields, phasers, impulse engines, sensors, torpedo tubes) can take lasting damage in combat, degrading what they do until you reach a starbase for repairs.
 
 ## Controls
@@ -26,7 +28,7 @@ Every mission starts in a random, clear sector, and ship subsystems (warp drive,
 | Engage warp | Controls panel → **Warp**, or press **W** |
 | Return to impulse | Controls panel → **Impulse**, or press **I** |
 | Move | Sciences panel → click a reachable sector on the map |
-| Allocate energy | Engineering panel → Shields / Phasers sliders |
+| Allocate energy | Engineering panel → Shields / Phasers sliders, or **H** (shields) / **P** (phasers) to add |
 | Steer / thrust (in combat) | Arrow keys or **WASD** |
 | Fire phasers (in combat) | **Space** |
 | Fire a homing torpedo (in combat) | **Enter** or **T** |
