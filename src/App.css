@@ -774,6 +774,17 @@
   color: var(--text);
 }
 
+.start-screen__hint {
+  /* Same accent used for the title, keycaps, and the Easy difficulty label
+     - ties this in as a piece of "insider" game knowledge rather than
+     plain instructional copy, which is what the plain-text CTA it
+     replaced read as. */
+  margin: 0;
+  max-width: 52ch;
+  font-size: 14px;
+  color: var(--accent);
+}
+
 .start-screen__instructions {
   /* border-box, not the browser default content-box: width:100% plus
      padding under content-box adds the padding on TOP of 100%, which is
@@ -830,15 +841,6 @@
   font-family: var(--mono);
   font-size: 11px;
   color: var(--accent);
-}
-
-.start-screen__note {
-  margin: 10px 0 0;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
-  font-size: 12px;
-  color: var(--text);
-  opacity: 0.75;
 }
 
 .start-screen__options {

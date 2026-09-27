@@ -75,7 +75,7 @@ export function StartScreen({ onSelect }: StartScreenProps) {
         little energy left to move.
       </p>
 
-      <p>Choose your mission difficulty.</p>
+      <p className="start-screen__hint">{hint}</p>
       <div className="start-screen__options">
         {(Object.keys(DIFFICULTY_COPY) as Difficulty[]).map((difficulty) => (
           <button
@@ -107,7 +107,6 @@ export function StartScreen({ onSelect }: StartScreenProps) {
             </div>
           ))}
         </div>
-        <p className="start-screen__note">{hint}</p>
       </div>
     </div>
   )
