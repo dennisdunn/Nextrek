@@ -397,6 +397,19 @@
   fill: #f59e0b;
 }
 
+/*
+ * A barrier's power-up is a consolation prize, not a hazard - it shares
+ * the starbase's green rather than the anomaly wedge's magenta, same
+ * reasoning as .sector-marker--star staying off-family for the opposite
+ * reason (a kill-phase hazard, not a navigational one).
+ */
+.sector-marker--powerup-energy,
+.sector-marker--powerup-torpedoes {
+  fill: #4ade80;
+  stroke: #4ade80;
+  stroke-width: 1.5;
+}
+
 /* Drawn on top of the wedges once both ends of a conduit are identified. */
 .conduit-link {
   stroke: #e879f9;

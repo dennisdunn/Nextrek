@@ -109,6 +109,52 @@ describe('moveTo', () => {
     expect(result.current.state.log.at(-1)).toMatch(/barrier collapses inward/)
   })
 
+  it('a barrier energy power-up fully refills the reserve and marks itself collected', () => {
+    const { result } = makeGalaxy()
+    const target = result.current.neighbors[0]
+    const node = result.current.galaxy.getNode(target)!
+    result.current.galaxy.setNode(target, { ...node, anomaly: { kind: 'barrier', powerUp: 'energy' } })
+
+    act(() => {
+      result.current.moveTo(target)
+    })
+
+    expect(result.current.state.energy.reserve).toBe(STARTING_ENERGY)
+    expect(result.current.state.collectedPowerUps.has(target)).toBe(true)
+    expect(result.current.state.log.some((line) => /Energy cache found/.test(line))).toBe(true)
+  })
+
+  it('a barrier torpedo power-up restocks the torpedo bay and marks itself collected', () => {
+    const { result } = makeGalaxy()
+    const target = result.current.neighbors[0]
+    const node = result.current.galaxy.getNode(target)!
+    result.current.galaxy.setNode(target, { ...node, anomaly: { kind: 'barrier', powerUp: 'torpedoes' } })
+    // Spend some torpedoes first so the restock is actually observable.
+    act(() => result.current.resolveEncounter(0, 0, 0, STARTING_TORPEDOES - 3, 0))
+
+    act(() => {
+      result.current.moveTo(target)
+    })
+
+    expect(result.current.state.torpedoes).toBe(STARTING_TORPEDOES)
+    expect(result.current.state.collectedPowerUps.has(target)).toBe(true)
+    expect(result.current.state.log.some((line) => /Torpedo cache found/.test(line))).toBe(true)
+  })
+
+  it('a barrier with no power-up behaves exactly as before - no unintended grant or log line', () => {
+    const { result } = makeGalaxy()
+    const target = result.current.neighbors[0]
+    const node = result.current.galaxy.getNode(target)!
+    result.current.galaxy.setNode(target, { ...node, anomaly: { kind: 'barrier' } })
+
+    act(() => {
+      result.current.moveTo(target)
+    })
+
+    expect(result.current.state.collectedPowerUps.size).toBe(0)
+    expect(result.current.state.log.some((line) => /cache found/.test(line))).toBe(false)
+  })
+
   it('a gate redirects the ship to a different, non-anomaly sector', () => {
     const { result } = makeGalaxy()
     const target = result.current.neighbors[0]

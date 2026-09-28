@@ -47,6 +47,19 @@ export interface HuntState {
   /** Sectors a subspace scan has checked for an anomaly (whether or not it found one). */
   scannedAnomalies: Set<NodeId>
   /**
+   * Barrier sectors whose power-up (see anomalySeeding.ts's AnomalyPlacement)
+   * has already been claimed - tracked here in React state, deliberately
+   * not on the graph node itself. A node mutation pushes onto the same
+   * shared undo stack toggleWarp/disengageWarp pop from (see
+   * UndoGraph.ts), and a barrier is exactly the kind of sector you might
+   * still be under warp when you first enter (see warpEnteredBarrier) -
+   * disengaging warp afterward would pop whatever was pushed most
+   * recently, which could be this instead of the warp edge-set. Keeping
+   * it out of the graph entirely sidesteps that risk rather than relying
+   * on call-order luck.
+   */
+  collectedPowerUps: Set<NodeId>
+  /**
    * The barrier sector the ship currently occupies, if it got in via warp -
    * null otherwise. barrier() only strips edges from whichever edge set is
    * currently live, so triggering it under warp only ever touches the warp
@@ -115,6 +128,7 @@ export function useGalaxy(options?: UseGalaxyOptions) {
     visited: new Set([home]),
     scanned: new Set(),
     scannedAnomalies: new Set(),
+    collectedPowerUps: new Set(),
     warpEnteredBarrier: null,
     log: ['Sensors online. Awaiting orders.'],
   })
@@ -246,6 +260,20 @@ export function useGalaxy(options?: UseGalaxyOptions) {
       // sector-entry effect (hostile, barrier, gate, conduit) - there's no
       // reason to gate a no-cost, no-choice restoration behind a command.
       const docked = Boolean(landedSector?.starbase)
+      // A barrier's power-up (if it has one) is also unconditional on entry,
+      // same as docking - and mutually exclusive with it, since seeding
+      // never puts a starbase and an anomaly on the same sector. Collection
+      // is tracked here in HuntState rather than via galaxy.setNode: a node
+      // mutation pushes onto the same shared undo stack toggleWarp/
+      // disengageWarp pop from (see UndoGraph.ts), and a barrier is exactly
+      // the kind of sector you might still be under warp when you first
+      // enter (see warpEnteredBarrier above) - a later disengageWarp() could
+      // then pop this mutation instead of the warp edge-set. Keeping
+      // collection out of the graph entirely sidesteps that risk.
+      const powerUp =
+        landedSector?.anomaly?.kind === 'barrier' && !state.collectedPowerUps.has(landedAt)
+          ? landedSector.anomaly.powerUp
+          : undefined
 
       setState((s) => ({
         ...s,
@@ -253,17 +281,25 @@ export function useGalaxy(options?: UseGalaxyOptions) {
         stardate: s.stardate + stardateCost(s.warpEngaged),
         energy: docked
           ? { reserve: preset.startingEnergy, shields: 0, phasers: 0 }
-          : { ...s.energy, reserve: s.energy.reserve - cost },
+          : powerUp === 'energy'
+            ? { ...s.energy, reserve: preset.startingEnergy }
+            : { ...s.energy, reserve: s.energy.reserve - cost },
         subsystems: docked ? fullSubsystemHealth() : s.subsystems,
-        torpedoes: docked ? preset.startingTorpedoes : s.torpedoes,
+        torpedoes: docked || powerUp === 'torpedoes' ? preset.startingTorpedoes : s.torpedoes,
         visited: new Set(s.visited).add(target).add(landedAt),
         warpEnteredBarrier: nextWarpEnteredBarrier,
+        collectedPowerUps: powerUp ? new Set(s.collectedPowerUps).add(landedAt) : s.collectedPowerUps,
       }))
       appendLog(message)
       if (docked) {
         appendLog(
           `Docked at ${landedSector!.name} starbase - shields, phasers, and reserves fully restored; all systems repaired; torpedo bay restocked.`,
         )
+      }
+      if (powerUp === 'energy') {
+        appendLog('Energy cache found - reserves fully replenished.')
+      } else if (powerUp === 'torpedoes') {
+        appendLog('Torpedo cache found - torpedo bay restocked.')
       }
       if (leavingWarpEnteredBarrier) {
         const departedName = galaxy.getNode(departedFrom)?.name ?? departedFrom
@@ -284,6 +320,7 @@ export function useGalaxy(options?: UseGalaxyOptions) {
       state.energy.reserve,
       state.warpEnteredBarrier,
       state.subsystems.impulseEngines,
+      state.collectedPowerUps,
       home,
       appendLog,
       preset,

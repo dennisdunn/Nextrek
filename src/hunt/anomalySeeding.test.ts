@@ -27,10 +27,31 @@ describe('pickAnomalyPlacements', () => {
     expect(placements.has('a')).toBe(false)
   })
 
-  it('places a barrier with no link when the roll picks that kind', () => {
-    // rng sequence per candidate: [density-check, kind-pick]; 0.1 * 3 = 0.3 -> KINDS[0] = 'barrier'
-    const placements = pickAnomalyPlacements(IDS, 'a', 1, scripted([0, 0.1]), ringNeighbors)
+  it('places a barrier with no link (and no power-up) when the roll picks that kind', () => {
+    // rng sequence per candidate: [density-check, kind-pick, power-up-chance]; 0.1 * 3 = 0.3 ->
+    // KINDS[0] = 'barrier'; third roll 0.9 >= BARRIER_POWERUP_CHANCE (0.4) -> no power-up
+    const placements = pickAnomalyPlacements(IDS, 'a', 1, scripted([0, 0.1, 0.9]), ringNeighbors)
     expect(placements.get('b')).toEqual({ kind: 'barrier' })
+  })
+
+  it('gives a barrier an energy power-up when both rolls land in range', () => {
+    // third roll 0 < BARRIER_POWERUP_CHANCE -> gets one; fourth roll 0 < BARRIER_POWERUP_ENERGY_CHANCE -> energy
+    const placements = pickAnomalyPlacements(IDS, 'a', 1, scripted([0, 0.1, 0, 0]), ringNeighbors)
+    expect(placements.get('b')).toEqual({ kind: 'barrier', powerUp: 'energy' })
+  })
+
+  it('gives a barrier a torpedo power-up when the resource-kind roll lands high', () => {
+    // third roll 0 -> gets a power-up; fourth roll 0.9 >= BARRIER_POWERUP_ENERGY_CHANCE -> torpedoes
+    const placements = pickAnomalyPlacements(IDS, 'a', 1, scripted([0, 0.1, 0, 0.9]), ringNeighbors)
+    expect(placements.get('b')).toEqual({ kind: 'barrier', powerUp: 'torpedoes' })
+  })
+
+  it('never gives gate a power-up, regardless of what the next rolls would be', () => {
+    // 0.4 * 3 = 1.2 -> KINDS[1] = 'gate' - the power-up rolls are structurally skipped for
+    // gate, not just unlucky, so the next scripted value (0, which would pass the chance
+    // check if it were consulted) is left completely unconsumed here.
+    const placements = pickAnomalyPlacements(IDS, 'a', 1, scripted([0, 0.4, 0]), ringNeighbors)
+    expect(placements.get('b')).toEqual({ kind: 'gate' })
   })
 
   it('places a gate with no link when the roll picks that kind', () => {

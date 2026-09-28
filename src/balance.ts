@@ -112,6 +112,19 @@ export const STARBASE_DENSITY = 0.05
 /** Fraction of hostile sectors (not otherwise complicated by an anomaly) that also get a star hazard. */
 export const STAR_HAZARD_DENSITY = 0.1
 
+/**
+ * Fraction of barrier sectors (specifically - not gate or conduit) that
+ * also hold a resource cache: a consolation prize for a hazard that's
+ * otherwise pure downside. At Normal's numbers this works out to roughly
+ * ANOMALY_DENSITY * 1/3 (barrier is 1 of 3 anomaly kinds) * this fraction
+ * of all sectors - well under STARBASE_DENSITY, so stumbling into one
+ * stays notably rarer than finding a real starbase.
+ */
+export const BARRIER_POWERUP_CHANCE = 0.4
+
+/** Coin flip between the two power-up kinds once a barrier is chosen to have one. */
+export const BARRIER_POWERUP_ENERGY_CHANCE = 0.5
+
 // ---------------------------------------------------------------------------
 // Combat loadout (kill/loadout.ts)
 // ---------------------------------------------------------------------------

@@ -11,6 +11,10 @@ interface GalaxyMapProps {
   known: ReadonlySet<NodeId>
   /** Sectors a subspace scan has checked for an anomaly. */
   anomalyKnown: ReadonlySet<NodeId>
+  /** Sectors the ship has physically entered - a barrier's power-up (if any) is never revealed by scanning alone, only by walking in. */
+  visited: ReadonlySet<NodeId>
+  /** Barrier power-ups already claimed - see HuntState.collectedPowerUps. */
+  collectedPowerUps: ReadonlySet<NodeId>
   onSelect: (id: NodeId) => void
 }
 
@@ -43,15 +47,17 @@ function sectorCenter(inner: { r: number; theta: number }, outer: { r: number; t
   return toScreen((inner.r + outer.r) / 2, (inner.theta + outer.theta) / 2, scale)
 }
 
-type MarkerKind = 'base' | 'gate' | 'conduit' | 'star'
+type MarkerKind = 'base' | 'gate' | 'conduit' | 'star' | 'powerup-energy' | 'powerup-torpedoes'
 
 /**
  * Each kind gets its own shape rather than its own color - anomaly markers
  * all stay in the same magenta family as the anomaly wedge itself (color
  * says "anomaly", shape says which one); a starbase is the only marker
  * that isn't a hazard, so it's the one that gets a different hue. Barrier
- * has no glyph of its own - the "- one-way" tooltip is the only additional
- * hint it gets.
+ * itself has no glyph of its own - the "- one-way" tooltip is the only
+ * additional hint it gets - but a power-up sitting in one does: it's a
+ * consolation prize, not a hazard, so it borrows the starbase hue rather
+ * than the anomaly magenta family, same reasoning as `star`.
  */
 function markerGlyph(kind: MarkerKind) {
   switch (kind) {
@@ -82,10 +88,30 @@ function markerGlyph(kind: MarkerKind) {
           <path d="M 0 -9 L 0 -6 M 0 6 L 0 9 M -9 0 L -6 0 M 6 0 L 9 0" />
         </>
       )
+    case 'powerup-energy':
+      // a lightning bolt
+      return <path d="M 2 -8 L -5 1 L -1 1 L -2 8 L 5 -1 L 1 -1 Z" />
+    case 'powerup-torpedoes':
+      // a torpedo silhouette: body plus fins
+      return (
+        <>
+          <rect x={-2.5} y={-8} width={5} height={13} rx={2.5} />
+          <path d="M -2.5 5 L -6 9 M 2.5 5 L 6 9" />
+        </>
+      )
   }
 }
 
-export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, onSelect }: GalaxyMapProps) {
+export function GalaxyMap({
+  galaxy,
+  position,
+  neighbors,
+  known,
+  anomalyKnown,
+  visited,
+  collectedPowerUps,
+  onSelect,
+}: GalaxyMapProps) {
   const sectors = [...galaxy.nodes.entries()]
   // Scale to whatever the outermost ring actually is, so the map stays
   // correctly proportioned regardless of how many rings there are.
@@ -129,15 +155,21 @@ export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, on
           const isConduit = isAnomaly && sector.anomaly?.kind === 'conduit'
           const isBase = isKnown && sector.starbase
           const isStarHazard = isKnown && sector.hasStarHazard
+          const powerUp =
+            isBarrier && visited.has(id) && !collectedPowerUps.has(id) ? sector.anomaly?.powerUp : undefined
           const markerKind: MarkerKind | null = isBase
             ? 'base'
-            : isGate
-              ? 'gate'
-              : isConduit
-                ? 'conduit'
-                : isStarHazard
-                  ? 'star'
-                  : null
+            : powerUp === 'energy'
+              ? 'powerup-energy'
+              : powerUp === 'torpedoes'
+                ? 'powerup-torpedoes'
+                : isGate
+                  ? 'gate'
+                  : isConduit
+                    ? 'conduit'
+                    : isStarHazard
+                      ? 'star'
+                      : null
           const isReachable = neighbors.includes(id)
           const classes = ['sector']
           if (isHere) classes.push('sector--here')
@@ -161,6 +193,7 @@ export function GalaxyMap({ galaxy, position, neighbors, known, anomalyKnown, on
                       : ` (hostile contact - ${sector.hostileCount} ship${sector.hostileCount === 1 ? '' : 's'})`
                     : ''}
                   {isAnomaly ? ` (${sector.anomaly!.kind} anomaly${isBarrier ? ' - one-way' : ''})` : ''}
+                  {powerUp ? ` (${powerUp} cache)` : ''}
                   {isBase ? ' (starbase)' : ''}
                   {isStarHazard ? ' (stellar hazard)' : ''}
                   {!isKnown ? ' (unscanned)' : ''}

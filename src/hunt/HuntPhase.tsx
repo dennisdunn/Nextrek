@@ -123,6 +123,8 @@ export function HuntPhase({
               neighbors={neighbors}
               known={known}
               anomalyKnown={anomalyKnown}
+              visited={state.visited}
+              collectedPowerUps={state.collectedPowerUps}
               onSelect={onMove}
             />
           </div>

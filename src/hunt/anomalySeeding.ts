@@ -1,11 +1,16 @@
+import { BARRIER_POWERUP_CHANCE, BARRIER_POWERUP_ENERGY_CHANCE } from '../balance'
 import type { AnomalyKind } from '../graph/anomalies'
 import type { Edge, NodeId } from '../graph/UndoGraph'
 import type { GalaxyEdgeData } from './warpNetwork'
+
+export type PowerUpKind = 'energy' | 'torpedoes'
 
 export interface AnomalyPlacement {
   kind: AnomalyKind
   /** The paired sector on the other end of a conduit. Unused for barrier/gate. */
   link?: NodeId
+  /** A resource cache this barrier holds - only ever set for kind 'barrier', and only sometimes (see balance.ts's BARRIER_POWERUP_CHANCE). A consolation prize for what's otherwise a pure-downside hazard. */
+  powerUp?: PowerUpKind
 }
 
 const KINDS: AnomalyKind[] = ['barrier', 'gate', 'conduit']
@@ -38,7 +43,16 @@ export function pickAnomalyPlacements(
     const kind = KINDS[Math.floor(rng() * KINDS.length)]
 
     if (kind === 'barrier' || kind === 'gate') {
-      placements.set(id, { kind })
+      // Only a barrier ever gets a power-up - gate's redirect and conduit's
+      // shortcut are already their own kind of "interesting", and rolling
+      // this for gate too would need its own rng() calls even when unused,
+      // shifting every subsequent pick's rng sequence for no reason.
+      if (kind === 'barrier' && rng() < BARRIER_POWERUP_CHANCE) {
+        const powerUp: PowerUpKind = rng() < BARRIER_POWERUP_ENERGY_CHANCE ? 'energy' : 'torpedoes'
+        placements.set(id, { kind, powerUp })
+      } else {
+        placements.set(id, { kind })
+      }
       continue
     }
 
