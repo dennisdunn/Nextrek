@@ -50,6 +50,7 @@ const HINTS: string[] = [
   'Subspace scans reveal nearby anomalies; long-range scans reveal everything else nearby.',
   'Your home sector is always safe - hostiles, anomalies, and starbases never spawn there.',
   'On a touch device, on-screen controls appear automatically during combat.',
+  "Not every barrier anomaly is a dead end - some hide something worth the risk of finding out.",
 ]
 
 function randomHint(): string {
