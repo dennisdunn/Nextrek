@@ -1,3 +1,4 @@
+import { BARRIER_POWERUP_COOLDOWN_STARDATES } from '../balance'
 import { polar2rect } from '../math/convert'
 import type { NodeId } from '../graph/UndoGraph'
 import { HUB_RADIUS } from './cartography'
@@ -13,8 +14,10 @@ interface GalaxyMapProps {
   anomalyKnown: ReadonlySet<NodeId>
   /** Sectors the ship has physically entered - a barrier's power-up (if any) is never revealed by scanning alone, only by walking in. */
   visited: ReadonlySet<NodeId>
-  /** Barrier power-ups already claimed - see HuntState.collectedPowerUps. */
-  collectedPowerUps: ReadonlySet<NodeId>
+  /** Barrier power-ups drawn so far, mapped to the stardate last drawn - see HuntState.collectedPowerUps. */
+  collectedPowerUps: ReadonlyMap<NodeId, number>
+  /** Current mission stardate, needed to tell whether a drawn cache has recharged yet. */
+  stardate: number
   onSelect: (id: NodeId) => void
 }
 
@@ -110,6 +113,7 @@ export function GalaxyMap({
   anomalyKnown,
   visited,
   collectedPowerUps,
+  stardate,
   onSelect,
 }: GalaxyMapProps) {
   const sectors = [...galaxy.nodes.entries()]
@@ -155,8 +159,10 @@ export function GalaxyMap({
           const isConduit = isAnomaly && sector.anomaly?.kind === 'conduit'
           const isBase = isKnown && sector.starbase
           const isStarHazard = isKnown && sector.hasStarHazard
-          const powerUp =
-            isBarrier && visited.has(id) && !collectedPowerUps.has(id) ? sector.anomaly?.powerUp : undefined
+          const lastCollectedAt = collectedPowerUps.get(id)
+          const onCooldown =
+            lastCollectedAt !== undefined && stardate - lastCollectedAt < BARRIER_POWERUP_COOLDOWN_STARDATES
+          const powerUp = isBarrier && visited.has(id) && !onCooldown ? sector.anomaly?.powerUp : undefined
           const markerKind: MarkerKind | null = isBase
             ? 'base'
             : powerUp === 'energy'

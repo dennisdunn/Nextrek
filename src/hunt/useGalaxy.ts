@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { COMMS_LOG_LIMIT, DIFFICULTY_PRESETS, type Difficulty } from '../balance'
+import { BARRIER_POWERUP_COOLDOWN_STARDATES, COMMS_LOG_LIMIT, DIFFICULTY_PRESETS, type Difficulty } from '../balance'
 import { barrier } from '../graph/anomalies'
 import type { NodeId } from '../graph/UndoGraph'
 import { pickGateDestination } from './anomalyEffects'
@@ -48,17 +48,19 @@ export interface HuntState {
   scannedAnomalies: Set<NodeId>
   /**
    * Barrier sectors whose power-up (see anomalySeeding.ts's AnomalyPlacement)
-   * has already been claimed - tracked here in React state, deliberately
-   * not on the graph node itself. A node mutation pushes onto the same
-   * shared undo stack toggleWarp/disengageWarp pop from (see
-   * UndoGraph.ts), and a barrier is exactly the kind of sector you might
-   * still be under warp when you first enter (see warpEnteredBarrier) -
-   * disengaging warp afterward would pop whatever was pushed most
-   * recently, which could be this instead of the warp edge-set. Keeping
-   * it out of the graph entirely sidesteps that risk rather than relying
-   * on call-order luck.
+   * has been claimed, mapped to the stardate it was last drawn - tracked
+   * here in React state, deliberately not on the graph node itself. A node
+   * mutation pushes onto the same shared undo stack toggleWarp/
+   * disengageWarp pop from (see UndoGraph.ts), and a barrier is exactly the
+   * kind of sector you might still be under warp when you first enter (see
+   * warpEnteredBarrier) - disengaging warp afterward would pop whatever was
+   * pushed most recently, which could be this instead of the warp edge-set.
+   * Keeping it out of the graph entirely sidesteps that risk rather than
+   * relying on call-order luck. The timestamp lets a cache recharge after
+   * BARRIER_POWERUP_COOLDOWN_STARDATES rather than being a one-shot pickup -
+   * see moveTo.
    */
-  collectedPowerUps: Set<NodeId>
+  collectedPowerUps: Map<NodeId, number>
   /**
    * The barrier sector the ship currently occupies, if it got in via warp -
    * null otherwise. barrier() only strips edges from whichever edge set is
@@ -128,7 +130,7 @@ export function useGalaxy(options?: UseGalaxyOptions) {
     visited: new Set([home]),
     scanned: new Set(),
     scannedAnomalies: new Set(),
-    collectedPowerUps: new Set(),
+    collectedPowerUps: new Map(),
     warpEnteredBarrier: null,
     log: ['Sensors online. Awaiting orders.'],
   })
@@ -269,11 +271,17 @@ export function useGalaxy(options?: UseGalaxyOptions) {
       // the kind of sector you might still be under warp when you first
       // enter (see warpEnteredBarrier above) - a later disengageWarp() could
       // then pop this mutation instead of the warp edge-set. Keeping
-      // collection out of the graph entirely sidesteps that risk.
-      const powerUp =
-        landedSector?.anomaly?.kind === 'barrier' && !state.collectedPowerUps.has(landedAt)
-          ? landedSector.anomaly.powerUp
-          : undefined
+      // collection out of the graph entirely sidesteps that risk. It's a
+      // rechargeable draw, not a one-shot pickup - but only reachable at all
+      // a second time if this barrier was entered via warp (which heals);
+      // an impulse entry seals the only route in for good, so the cooldown
+      // below never gets a chance to matter there.
+      const nextStardate = state.stardate + stardateCost(state.warpEngaged)
+      const rawPowerUp = landedSector?.anomaly?.kind === 'barrier' ? landedSector.anomaly.powerUp : undefined
+      const lastCollectedAt = state.collectedPowerUps.get(landedAt)
+      const onCooldown =
+        lastCollectedAt !== undefined && nextStardate - lastCollectedAt < BARRIER_POWERUP_COOLDOWN_STARDATES
+      const powerUp = rawPowerUp && !onCooldown ? rawPowerUp : undefined
 
       setState((s) => ({
         ...s,
@@ -288,7 +296,9 @@ export function useGalaxy(options?: UseGalaxyOptions) {
         torpedoes: docked || powerUp === 'torpedoes' ? preset.startingTorpedoes : s.torpedoes,
         visited: new Set(s.visited).add(target).add(landedAt),
         warpEnteredBarrier: nextWarpEnteredBarrier,
-        collectedPowerUps: powerUp ? new Set(s.collectedPowerUps).add(landedAt) : s.collectedPowerUps,
+        collectedPowerUps: powerUp
+          ? new Map(s.collectedPowerUps).set(landedAt, nextStardate)
+          : s.collectedPowerUps,
       }))
       appendLog(message)
       if (docked) {
@@ -300,6 +310,8 @@ export function useGalaxy(options?: UseGalaxyOptions) {
         appendLog('Energy cache found - reserves fully replenished.')
       } else if (powerUp === 'torpedoes') {
         appendLog('Torpedo cache found - torpedo bay restocked.')
+      } else if (rawPowerUp && onCooldown) {
+        appendLog("The cache here hasn't recharged yet.")
       }
       if (leavingWarpEnteredBarrier) {
         const departedName = galaxy.getNode(departedFrom)?.name ?? departedFrom
@@ -321,6 +333,7 @@ export function useGalaxy(options?: UseGalaxyOptions) {
       state.warpEnteredBarrier,
       state.subsystems.impulseEngines,
       state.collectedPowerUps,
+      state.stardate,
       home,
       appendLog,
       preset,

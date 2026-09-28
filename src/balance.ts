@@ -125,6 +125,16 @@ export const BARRIER_POWERUP_CHANCE = 0.4
 /** Coin flip between the two power-up kinds once a barrier is chosen to have one. */
 export const BARRIER_POWERUP_ENERGY_CHANCE = 0.5
 
+/**
+ * Stardates that must pass after collecting a barrier's cache before it can
+ * be drawn from again (~15% of Normal's STARDATE_BUDGET). Only matters if
+ * the barrier is still reachable at all - an impulse-entered barrier seals
+ * itself permanently on the way in (see useGalaxy.ts's moveTo), so in
+ * practice only a warp-entered one (which heals) is ever a candidate for a
+ * second draw.
+ */
+export const BARRIER_POWERUP_COOLDOWN_STARDATES = 3
+
 // ---------------------------------------------------------------------------
 // Combat loadout (kill/loadout.ts)
 // ---------------------------------------------------------------------------

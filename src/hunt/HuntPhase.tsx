@@ -125,6 +125,7 @@ export function HuntPhase({
               anomalyKnown={anomalyKnown}
               visited={state.visited}
               collectedPowerUps={state.collectedPowerUps}
+              stardate={state.stardate}
               onSelect={onMove}
             />
           </div>

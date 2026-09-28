@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { BARRIER_POWERUP_COOLDOWN_STARDATES } from '../balance'
 import { sectorId } from './cartography'
 import { HOSTILE_QUOTA, STARDATE_PER_NORMAL_MOVE, STARDATE_PER_WARP_MOVE } from './mission'
 import { LRS_COST_IMPULSE, LRS_COST_WARP, MOVE_COST_NORMAL, STARTING_ENERGY, STARTING_TORPEDOES, SUBSPACE_SCAN_MULTIPLIER, WARP_ENGAGE_COST } from './ship'
@@ -153,6 +154,53 @@ describe('moveTo', () => {
 
     expect(result.current.state.collectedPowerUps.size).toBe(0)
     expect(result.current.state.log.some((line) => /cache found/.test(line))).toBe(false)
+  })
+
+  it('does not re-grant a power-up before its cooldown has elapsed', () => {
+    const { result } = makeGalaxy()
+    const target = result.current.neighbors[0]
+    const node = result.current.galaxy.getNode(target)!
+    result.current.galaxy.setNode(target, { ...node, anomaly: { kind: 'barrier', powerUp: 'torpedoes' } })
+
+    act(() => result.current.moveTo(target)) // first draw
+    act(() => result.current.resolveEncounter(0, 0, 0, STARTING_TORPEDOES - 5, 0)) // spend some, so a re-draw would be observable
+    const away = result.current.galaxy.outgoingEdges(target)[0].to
+    act(() => result.current.moveTo(away))
+    // barrier() only strips incoming edges - restore one by hand rather than
+    // simulating a full warp-heal cycle, since only the cooldown is under test here.
+    result.current.galaxy.addEdge({ from: away, to: target })
+
+    act(() => result.current.moveTo(target)) // re-enter almost immediately - well under the cooldown
+
+    expect(result.current.state.torpedoes).toBe(STARTING_TORPEDOES - 5)
+    expect(result.current.state.log.at(-1)).toBe("The cache here hasn't recharged yet.")
+  })
+
+  it('re-grants a power-up once its cooldown has elapsed', () => {
+    const { result } = makeGalaxy()
+    const target = result.current.neighbors[0]
+    const node = result.current.galaxy.getNode(target)!
+    result.current.galaxy.setNode(target, { ...node, anomaly: { kind: 'barrier', powerUp: 'torpedoes' } })
+
+    act(() => result.current.moveTo(target)) // first draw
+    act(() => result.current.resolveEncounter(0, 0, 0, STARTING_TORPEDOES - 5, 0)) // spend some, so a re-draw would be observable
+    const away = result.current.galaxy.outgoingEdges(target)[0].to
+    act(() => result.current.moveTo(away))
+    const shuttleNeighbor = result.current.galaxy.outgoingEdges(away).find((e) => e.to !== target)!.to
+
+    // Enough back-and-forth impulse moves to clear BARRIER_POWERUP_COOLDOWN_STARDATES.
+    const stepsNeeded = Math.ceil(BARRIER_POWERUP_COOLDOWN_STARDATES / STARDATE_PER_NORMAL_MOVE) + 2
+    let atAway = true
+    for (let i = 0; i < stepsNeeded; i++) {
+      act(() => result.current.moveTo(atAway ? shuttleNeighbor : away))
+      atAway = !atAway
+    }
+
+    result.current.galaxy.addEdge({ from: result.current.state.position, to: target })
+    act(() => result.current.moveTo(target)) // re-enter well after the cooldown
+
+    expect(result.current.state.torpedoes).toBe(STARTING_TORPEDOES)
+    expect(result.current.state.log.at(-1)).toBe('Torpedo cache found - torpedo bay restocked.')
   })
 
   it('a gate redirects the ship to a different, non-anomaly sector', () => {
