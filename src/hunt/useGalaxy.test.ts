@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BARRIER_POWERUP_COOLDOWN_STARDATES } from '../balance'
 import { sectorId } from './cartography'
+import { impulseNeighbors } from './galaxy'
 import { HOSTILE_QUOTA, STARDATE_PER_NORMAL_MOVE, STARDATE_PER_WARP_MOVE } from './mission'
 import { LRS_COST_IMPULSE, LRS_COST_WARP, MOVE_COST_NORMAL, STARTING_ENERGY, STARTING_TORPEDOES, SUBSPACE_SCAN_MULTIPLIER, WARP_ENGAGE_COST } from './ship'
 import { REFUND_EFFICIENCY } from './subsystems'
@@ -270,6 +271,25 @@ describe('toggleWarp', () => {
 
     expect(result.current.state.warpEngaged).toBe(false)
     expect(result.current.state.log.at(-1)).toMatch(/offline/)
+  })
+
+  it('restores real impulse neighbors after disengaging past a barrier entered mid-flight', () => {
+    const { result } = makeGalaxy()
+    act(() => result.current.toggleWarp())
+    const target = result.current.neighbors[0]
+    const node = result.current.galaxy.getNode(target)!
+    result.current.galaxy.setNode(target, { ...node, anomaly: { kind: 'barrier' } })
+
+    // Entering the barrier while under warp pushes its own edge-removal on
+    // top of the warp engagement itself - a naive single-pop disengage
+    // would only undo that and leave the warp-radius network still live.
+    act(() => result.current.moveTo(target))
+    const away = result.current.galaxy.outgoingEdges(target)[0].to
+    act(() => result.current.moveTo(away))
+
+    act(() => result.current.toggleWarp())
+
+    expect(result.current.galaxy.neighbors(away).sort()).toEqual(impulseNeighbors(away).sort())
   })
 })
 

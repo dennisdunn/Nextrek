@@ -166,14 +166,32 @@ export function createGalaxy(options: CreateGalaxyOptions = {}): Galaxy {
  * WARP_RADIUS impulse-hops of wherever you are, each edge carrying its
  * hop-distance so a jump's energy cost can scale with how far it actually
  * goes (see ship.ts's moveCost). Computed from the graph's current edges,
- * so it must be called while still in impulse space. Undo() to disengage.
+ * so it must be called while still in impulse space.
+ *
+ * Returns the graph's undo-depth from just before engaging - the caller
+ * must hold onto this and pass it to disengageWarp later. A plain undo()
+ * would only revert the single most recent mutation, which is only correct
+ * if nothing else touched the graph while warp was active; entering a
+ * barrier while under warp pushes its own edge-removal on top of this one
+ * (see graph/anomalies.ts's barrier()), so disengaging needs to unwind back
+ * to this depth, not just pop once - see UndoGraph.undoTo.
  */
-export function engageWarp(galaxy: Galaxy): void {
+export function engageWarp(galaxy: Galaxy): number {
+  const depthBeforeEngage = galaxy.undoDepth
   const allIds = [...galaxy.nodes.keys()]
   galaxy.replaceEdges(buildWarpEdges(galaxy.edges, allIds, WARP_RADIUS))
+  return depthBeforeEngage
 }
 
-/** Disengage warp drive, falling back to normal space. Returns false if warp was not engaged. */
-export function disengageWarp(galaxy: Galaxy): boolean {
-  return galaxy.undo()
+/**
+ * Disengage warp drive, falling back to normal space. `depthBeforeEngage`
+ * is engageWarp's own return value from when this warp session started -
+ * unwinds everything pushed since, not just the most recent mutation (see
+ * engageWarp). Returns false if warp was not engaged (the graph is already
+ * at or below that depth).
+ */
+export function disengageWarp(galaxy: Galaxy, depthBeforeEngage: number): boolean {
+  if (galaxy.undoDepth <= depthBeforeEngage) return false
+  galaxy.undoTo(depthBeforeEngage)
+  return true
 }

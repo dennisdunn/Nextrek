@@ -205,14 +205,28 @@ describe('warp drive', () => {
   it('disengaging pops back to normal space connectivity', () => {
     const galaxy = createGalaxy()
     const before = galaxy.neighbors(sectorId(0, 0)).sort()
-    engageWarp(galaxy)
-    expect(disengageWarp(galaxy)).toBe(true)
+    const checkpoint = engageWarp(galaxy)
+    expect(disengageWarp(galaxy, checkpoint)).toBe(true)
     expect(galaxy.neighbors(sectorId(0, 0)).sort()).toEqual(before)
   })
 
   it('disengaging with no warp engaged is a no-op', () => {
     const galaxy = createGalaxy()
-    expect(disengageWarp(galaxy)).toBe(false)
+    expect(disengageWarp(galaxy, galaxy.undoDepth)).toBe(false)
+  })
+
+  it('disengaging unwinds a mutation pushed while under warp too, not just the engagement itself', () => {
+    const galaxy = createGalaxy()
+    const target = sectorId(1, 0)
+    const before = galaxy.neighbors(sectorId(0, 0)).sort()
+    const checkpoint = engageWarp(galaxy)
+    // Stand in for a barrier entered mid-flight (see anomalies.ts's
+    // barrier()) - some other mutation pushed on top of the warp
+    // engagement, before disengaging. A plain single undo() would only pop
+    // this and leave the warp edge-set itself still live.
+    galaxy.removeEdges((e) => e.to === target)
+    expect(disengageWarp(galaxy, checkpoint)).toBe(true)
+    expect(galaxy.neighbors(sectorId(0, 0)).sort()).toEqual(before)
   })
 })
 

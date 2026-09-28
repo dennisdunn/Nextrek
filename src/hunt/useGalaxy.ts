@@ -148,6 +148,13 @@ export function useGalaxy(options?: UseGalaxyOptions) {
   const stateRef = useRef(state)
   stateRef.current = state
 
+  // The graph's undo-depth from just before the current warp session
+  // engaged (null while not engaged) - see galaxy.ts's engageWarp/
+  // disengageWarp. Needs to survive between the toggleWarp call that
+  // engages and the later one that disengages, without itself triggering a
+  // re-render, so a ref rather than HuntState.
+  const warpCheckpointRef = useRef<number | null>(null)
+
   const currentSector = galaxy.getNode(state.position)
   const neighbors = galaxy.neighbors(state.position)
   const known = knownSectors(state.visited, state.scanned)
@@ -342,7 +349,11 @@ export function useGalaxy(options?: UseGalaxyOptions) {
 
   const toggleWarp = useCallback(() => {
     if (state.warpEngaged) {
-      disengageWarp(galaxy)
+      // warpCheckpointRef is only ever null while !state.warpEngaged (set in
+      // the branch below, cleared here) - the ?? 0 fallback is defensive,
+      // not an expected path.
+      disengageWarp(galaxy, warpCheckpointRef.current ?? 0)
+      warpCheckpointRef.current = null
       setState((s) => ({ ...s, warpEngaged: false }))
       appendLog('Warp drive disengaged.')
     } else {
@@ -355,7 +366,7 @@ export function useGalaxy(options?: UseGalaxyOptions) {
         appendLog('Insufficient energy to engage warp drive.')
         return
       }
-      engageWarp(galaxy)
+      warpCheckpointRef.current = engageWarp(galaxy)
       setState((s) => ({
         ...s,
         warpEngaged: true,
