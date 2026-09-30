@@ -755,6 +755,121 @@
   font-size: 14px;
 }
 
+/* Shared between StartScreen (read-only) and EndScreen (with a pending
+   score's inline name entry) - see game/Leaderboard.tsx. Boxed the same way
+   as .start-screen__instructions so the two read as matching reference
+   panels rather than one looking like an afterthought. */
+.leaderboard {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 420px;
+  padding: 12px 16px;
+  text-align: left;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.leaderboard h2 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-h);
+  opacity: 0.75;
+}
+
+.leaderboard__empty,
+.leaderboard__note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+  opacity: 0.75;
+}
+
+.leaderboard__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.leaderboard__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.leaderboard__row:last-child {
+  border-bottom: none;
+}
+
+.leaderboard__rank {
+  flex: 0 0 20px;
+  color: var(--text);
+  opacity: 0.6;
+  font-size: 12px;
+}
+
+.leaderboard__name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-h);
+}
+
+.leaderboard__score {
+  color: var(--accent);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The row holding the just-earned score's name input, before it's saved. */
+.leaderboard__row--pending {
+  background: var(--accent-bg);
+  margin: 0 -8px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  border-bottom: none;
+}
+
+/* The row that was just saved - a lighter callout than --pending's, just
+   enough to find your own entry in a list of 10 without it looking like
+   it's still awaiting input. */
+.leaderboard__row--you {
+  background: var(--accent-bg);
+  opacity: 0.7;
+  margin: 0 -8px;
+  padding: 5px 8px;
+  border-radius: 4px;
+}
+
+.leaderboard__name-input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text-h);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+.leaderboard__name-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.leaderboard__save {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
 .start-screen {
   /* border-box, not the browser default content-box: width:100% plus
      padding under content-box adds the padding on TOP of 100% of the

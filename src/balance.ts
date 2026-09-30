@@ -315,3 +315,10 @@ export const DIFFICULTY_PRESETS: Record<Difficulty, DifficultyPreset> = {
     scoreMultiplier: 1.5,
   },
 }
+
+// ---------------------------------------------------------------------------
+// Leaderboard (game/leaderboard.ts, game/Leaderboard.tsx)
+// ---------------------------------------------------------------------------
+
+/** How many entries the local leaderboard keeps - a lower-ranked new score still saves, it just won't be shown afterward. */
+export const LEADERBOARD_MAX_ENTRIES = 10

@@ -15,7 +15,9 @@ Nextrek alternates between two phases:
 
 **Objective:** destroy enough hostiles before the mission clock runs out. **You lose** if the clock runs out first, if your ship is destroyed in combat, or if you become stranded — too little energy left to make even the cheapest possible move.
 
-**Score:** a win is rated on how efficiently you pulled it off, not just that you did — hostiles destroyed relative to quota (killing more than required keeps adding to the score, it's not free), time spent relative to the mission clock, and energy/torpedoes still in reserve at the end all count equally. A clean, unhurried, resource-light win at exactly quota scores around 1000 on Normal; overkill pushes it higher. Harder difficulties score more for the same performance — roughly ×0.75 on Easy, ×1 on Normal, ×1.5 on Hard.
+**Score:** a win is rated on how efficiently you pulled it off, not just that you did — hostiles destroyed relative to quota (killing more than required keeps adding to the score, it's not free), time spent relative to the mission clock, and energy/torpedoes still in reserve at the end all count equally. A clean, unhurried, resource-light win at exactly quota scores around 1000 on Normal; overkill pushes it higher. Harder difficulties score more for the same performance — roughly ×0.75 on Easy, ×1 on Normal, ×1.5 on Hard, so all three share one leaderboard rather than needing separate ones.
+
+**Leaderboard:** every win's score can be saved with a name to a local leaderboard, stored entirely in your browser (no account, no server) - shown on the start screen and at the end of every mission.
 
 Every mission starts in a random, clear sector, and ship subsystems (warp drive, shields, phasers, impulse engines, sensors, torpedo tubes) can take lasting damage in combat, degrading what they do until you reach a starbase for repairs.
 

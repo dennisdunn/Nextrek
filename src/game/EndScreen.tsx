@@ -1,4 +1,5 @@
 import { missionScore, type DefeatReason, type MissionResources, type MissionStatus } from '../hunt/mission'
+import { Leaderboard } from './Leaderboard'
 
 export interface EndScreenProps {
   status: Extract<MissionStatus, 'victory' | 'defeat'>
@@ -82,6 +83,7 @@ export function EndScreen({
       <button type="button" onClick={onNewGame}>
         New game
       </button>
+      <Leaderboard pendingScore={score ?? undefined} />
     </div>
   )
 }

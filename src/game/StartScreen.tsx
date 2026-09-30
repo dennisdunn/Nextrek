@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Difficulty } from '../balance'
+import { Leaderboard } from './Leaderboard'
 
 export interface StartScreenProps {
   onSelect: (difficulty: Difficulty) => void
@@ -90,6 +91,8 @@ export function StartScreen({ onSelect }: StartScreenProps) {
           </button>
         ))}
       </div>
+
+      <Leaderboard />
 
       {/*
         Underneath the difficulty picker, not beside the description - it's
