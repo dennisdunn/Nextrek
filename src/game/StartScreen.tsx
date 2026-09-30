@@ -30,7 +30,7 @@ const CONTROLS: [string, string][] = [
   ['Click a sector', 'Move'],
   ['L', 'Long-range scan'],
   ['S', 'Subspace scan'],
-  ['W / I', 'Engage warp / return to impulse'],
+  ['W / I', 'Warp / Impulse'],
   ['Arrows / WASD', 'Steer & thrust'],
   ['Space', 'Fire phasers'],
   ['Enter / T', 'Fire a homing torpedo'],
