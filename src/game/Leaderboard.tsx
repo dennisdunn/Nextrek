@@ -62,7 +62,7 @@ export function Leaderboard({ pendingScore }: LeaderboardProps) {
           {rows.map((row, i) =>
             row.kind === 'pending' ? (
               <li key="pending" className="leaderboard__row leaderboard__row--pending">
-                <span className="leaderboard__rank">{i + 1}</span>
+                <span className="leaderboard__rank">#{i + 1}</span>
                 <input
                   type="text"
                   className="leaderboard__name-input"
@@ -74,10 +74,12 @@ export function Leaderboard({ pendingScore }: LeaderboardProps) {
                   autoFocus
                   aria-label="Your name"
                 />
-                <span className="leaderboard__score">{pendingScore}</span>
-                <button type="button" className="leaderboard__save" onClick={handleSave}>
-                  Save
-                </button>
+                <div className="leaderboard__pending-footer">
+                  <span className="leaderboard__score">{pendingScore}</span>
+                  <button type="button" className="leaderboard__save" onClick={handleSave}>
+                    Save
+                  </button>
+                </div>
               </li>
             ) : (
               <li
@@ -88,7 +90,7 @@ export function Leaderboard({ pendingScore }: LeaderboardProps) {
                     : 'leaderboard__row'
                 }
               >
-                <span className="leaderboard__rank">{i + 1}</span>
+                <span className="leaderboard__rank">#{i + 1}</span>
                 <span className="leaderboard__name">{row.entry.name}</span>
                 <span className="leaderboard__score">{row.entry.score}</span>
               </li>

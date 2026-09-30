@@ -756,13 +756,14 @@
 }
 
 /* Shared between StartScreen (read-only) and EndScreen (with a pending
-   score's inline name entry) - see game/Leaderboard.tsx. Boxed the same way
-   as .start-screen__instructions so the two read as matching reference
-   panels rather than one looking like an afterthought. */
+   score's inline name entry) - see game/Leaderboard.tsx. Boxed and gridded
+   the same way as .start-screen__instructions/.start-screen__controls
+   (full width, 3 columns) so the two read as matching reference panels
+   rather than one looking like an afterthought. */
 .leaderboard {
   box-sizing: border-box;
   width: 100%;
-  max-width: 420px;
+  max-width: 760px;
   padding: 12px 16px;
   text-align: left;
   background: var(--panel-bg);
@@ -788,7 +789,14 @@
   opacity: 0.75;
 }
 
+/* Same 3-columns-x-N-rows shape as .start-screen__controls, including the
+   480px breakpoint below - rank order still reads top-to-bottom because a
+   row-major grid (the CSS default) fills left-to-right one row before
+   wrapping, so #1-3 land in row 1, #4-6 in row 2, and so on. */
 .leaderboard__list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px 16px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -796,26 +804,20 @@
 
 .leaderboard__row {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 14px;
-}
-
-.leaderboard__row:last-child {
-  border-bottom: none;
-}
-
-.leaderboard__rank {
-  flex: 0 0 20px;
-  color: var(--text);
-  opacity: 0.6;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 4px;
   font-size: 12px;
 }
 
+.leaderboard__rank {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+}
+
 .leaderboard__name {
-  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -828,36 +830,29 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* The row holding the just-earned score's name input, before it's saved. */
+/* The cell holding the just-earned score's name input, before it's saved. */
 .leaderboard__row--pending {
   background: var(--accent-bg);
-  margin: 0 -8px;
-  padding: 5px 8px;
-  border-radius: 4px;
-  border-bottom: none;
 }
 
-/* The row that was just saved - a lighter callout than --pending's, just
+/* The cell that was just saved - a lighter callout than --pending's, just
    enough to find your own entry in a list of 10 without it looking like
    it's still awaiting input. */
 .leaderboard__row--you {
   background: var(--accent-bg);
   opacity: 0.7;
-  margin: 0 -8px;
-  padding: 5px 8px;
-  border-radius: 4px;
 }
 
 .leaderboard__name-input {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-h);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 4px 8px;
+  padding: 3px 6px;
 }
 
 .leaderboard__name-input:focus-visible {
@@ -865,9 +860,16 @@
   outline-offset: 1px;
 }
 
+.leaderboard__pending-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
 .leaderboard__save {
-  padding: 4px 10px;
-  font-size: 12px;
+  padding: 3px 8px;
+  font-size: 11px;
 }
 
 .start-screen {
@@ -1112,6 +1114,10 @@
  */
 @media (max-width: 480px) {
   .start-screen__controls {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .leaderboard__list {
     grid-template-columns: repeat(2, 1fr);
   }
 }
