@@ -107,7 +107,7 @@ export function StartScreen({ onSelect }: StartScreenProps) {
           {CONTROLS.map(([key, action]) => (
             <div className="start-screen__control-row" key={key}>
               <span className="start-screen__key">{key}</span>
-              <span>{action}</span>
+              <span className="start-screen__action">{action}</span>
             </div>
           ))}
         </div>
