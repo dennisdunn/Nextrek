@@ -804,20 +804,23 @@
 
 .leaderboard__row {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 6px;
   padding: 4px;
   border-radius: 4px;
   font-size: 12px;
 }
 
 .leaderboard__rank {
+  flex: 0 0 auto;
   font-family: var(--mono);
   font-size: 11px;
   color: var(--accent);
 }
 
 .leaderboard__name {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -825,6 +828,7 @@
 }
 
 .leaderboard__score {
+  flex: 0 0 auto;
   color: var(--accent);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -844,7 +848,8 @@
 }
 
 .leaderboard__name-input {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   box-sizing: border-box;
   font: inherit;
   font-size: 13px;
@@ -861,9 +866,9 @@
 }
 
 .leaderboard__pending-footer {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 6px;
 }
 
