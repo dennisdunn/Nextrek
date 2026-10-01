@@ -764,7 +764,12 @@
   box-sizing: border-box;
   width: 100%;
   max-width: 760px;
-  padding: 12px 16px;
+  /* overflow:hidden + the h2 below reaching edge to edge via negative
+     margins, same split as kill-phase's .panel/.panel__title/.panel__body -
+     deliberately mimicking the in-game station panels' header treatment
+     (mono font, uppercase, colored left accent bar) rather than inventing a
+     different header style for a page that otherwise looks like them. */
+  overflow: hidden;
   text-align: left;
   background: var(--panel-bg);
   border: 1px solid var(--border);
@@ -772,13 +777,20 @@
 }
 
 .leaderboard h2 {
-  margin: 0 0 10px;
+  margin: 0;
+  padding: 8px 16px;
+  font-family: var(--mono);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-h);
-  opacity: 0.75;
+  border-bottom: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+}
+
+.leaderboard__body {
+  padding: 10px 16px 12px;
 }
 
 .leaderboard__empty,
@@ -825,6 +837,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: center;
   color: var(--text-h);
 }
 
@@ -878,30 +891,70 @@
   font-size: 11px;
 }
 
+/* EXPERIMENTAL 3-column layout (2026-10-01) - leaderboard / title+picker /
+   controls side by side, narrower center column, wide gaps so the page
+   doesn't feel like one crowded block. Variant knobs below for comparison
+   screenshots; not yet responsive below the width this needs.
+
+   Two grid rows, not one: the title (h1 + subtitle) is its own row,
+   spanning only the center column, so leaderboard/controls - placed in row
+   2 alongside the rest of the center column - line up with the *top of the
+   description paragraph*, not the title above it. Explicit grid-column/
+   grid-row placement below, since default auto-placement would otherwise
+   fill row 1 left-to-right across all three columns first. */
 .start-screen {
-  /* border-box, not the browser default content-box: width:100% plus
-     padding under content-box adds the padding on TOP of 100% of the
-     available width, overflowing #app by 2x the padding - there's no
-     global box-sizing reset in this project. Pre-existing (since this
-     component's own first version), just not visible until a full
-     paragraph of body text made the overflow obvious instead of a few
-     pixels of slack around the difficulty cards. */
   box-sizing: border-box;
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* flex-start, not center: on a short/narrow phone the three difficulty
-     cards don't all fit, and centering overflowing flex content scrolls to
-     a position straddling the top AND bottom equally (a well-known flexbox
-     trap) rather than starting from the top - the Hard card's bottom half,
-     button included, was unreachable even with scrolling enabled. */
-  justify-content: flex-start;
-  gap: 16px;
-  text-align: center;
-  padding: 24px;
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(380px, 460px) minmax(220px, 280px);
+  justify-content: center;
+  align-items: start;
+  row-gap: 16px;
+  column-gap: 56px;
+  padding: 40px 48px;
   width: 100%;
   overflow-y: auto;
+}
+
+.start-screen__title {
+  grid-column: 2;
+  grid-row: 1;
+  /* The grid's own align-items: start (below) sizes every item to its own
+     content height and pins it to the top of its row track - harmless for
+     row 2 (all three items are about as tall as each other), but row 1 only
+     has this one item, so its track stretches to match the page's leftover
+     height and align-self: end is what actually keeps the title pinned to
+     the bottom of that tall track, right above the row below, rather than
+     floating at the top of it with a dead gap underneath. */
+  align-self: end;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
+
+.start-screen__column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.start-screen__column--leaderboard {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.start-screen__column--main {
+  grid-column: 2;
+  grid-row: 2;
+  align-items: center;
+  text-align: center;
+}
+
+.start-screen__column--controls {
+  grid-column: 3;
+  grid-row: 2;
 }
 
 .start-screen h1 {
@@ -910,17 +963,17 @@
   color: var(--accent);
 }
 
-.start-screen > p {
+.start-screen__title > p.start-screen__subtitle {
   margin: 0;
-  color: var(--text);
-}
-
-.start-screen > p.start-screen__subtitle {
-  margin-top: -12px;
   opacity: 0.7;
   font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.start-screen__column--main > p {
+  margin: 0;
+  color: var(--text);
 }
 
 .start-screen__description {
@@ -944,12 +997,12 @@
   text-align-last: left;
 }
 
-.start-screen > p.start-screen__hint {
-  /* Needs the same `.start-screen > p.<class>` shape as .start-screen__subtitle
-     right above - .start-screen > p's own color:var(--text) has higher
-     specificity than a bare .start-screen__hint class selector, so a plain
-     .start-screen__hint rule loses this color override regardless of
-     which one comes later in the file.
+.start-screen__column--main > p.start-screen__hint {
+  /* Needs the same `.start-screen__column--main > p.<class>` shape as
+     .start-screen__subtitle right above - the plain `> p` rule's own
+     color:var(--text) has higher specificity than a bare .start-screen__hint
+     class selector, so a plain .start-screen__hint rule loses this color
+     override regardless of which one comes later in the file.
 
      Same accent used for the title, keycaps, and the Easy difficulty label
      - ties this in as a piece of "insider" game knowledge rather than
@@ -968,29 +1021,46 @@
      there's no global box-sizing reset in this project. */
   box-sizing: border-box;
   width: 100%;
-  /* Wider than the old single-column box (420px) - it now holds a 3-column
-     grid, not a stack of 9 rows, so it needs the room across, not down.
-     Only matters once the viewport is wide enough to hit this cap (this
-     is still width:100% below it) - wider here means fewer 2-line wraps
-     in the longer action labels ("Engage warp / return to impulse"),
-     which is what was actually costing the extra row height on a
-     1024px-wide tablet. */
-  max-width: 760px;
-  padding: 12px 16px;
+  /* overflow:hidden + the h2 reaching edge to edge, same split as kill-
+     phase's .panel/.panel__title/.panel__body - deliberately mimicking the
+     in-game station panels' header treatment. */
+  overflow: hidden;
   text-align: left;
   background: var(--panel-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
 }
 
+.start-screen__instructions-body {
+  padding: 10px 16px 12px;
+}
+
+/* Both this and the leaderboard's own grid were built for a wide, full-
+   page-width box (the pre-2026-10-01 single-column layout) - in the new
+   narrow sidebar column they live in now, 3 sub-columns has no room to
+   work with, so each drops to a single column of rows instead. */
+.start-screen__column--controls .start-screen__controls {
+  grid-template-columns: 1fr;
+}
+
+.start-screen__column--leaderboard .leaderboard__list {
+  grid-template-columns: 1fr;
+}
+
 .start-screen__instructions h2 {
-  margin: 0 0 10px;
+  margin: 0;
+  padding: 8px 16px;
+  font-family: var(--mono);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-h);
-  opacity: 0.75;
+  border-bottom: 1px solid var(--border);
+  /* Same muted blue-gray .panel--controls .panel__title uses for the
+     in-game Controls panel - this box is that same information, just
+     referenced before a mission starts rather than during one. */
+  border-left: 4px solid #9aa5b8;
 }
 
 /* 3 columns x 3 rows for the 9 key/action pairs - was a single column of 9
@@ -1028,29 +1098,23 @@
 
 .start-screen__options {
   display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  justify-content: center;
+  /* Single row even though the center column is narrow here - each card
+     shrinks to an equal share (flex: 1 1 0) rather than keeping a 200px
+     floor, which is what forced wrapping to a stack in this column width. */
+  gap: 10px;
   margin-top: 8px;
-  /* Same width as .start-screen__description/__instructions, so all three
-     boxes line up instead of this one sitting narrower and centered in
-     the middle of the other two. */
   width: 100%;
-  max-width: 760px;
 }
 
 .start-screen__option {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  /* flex-grow, not a fixed width - the three cards spread out to fill
-     .start-screen__options's full width rather than clustering at their
-     old fixed 220px and leaving that width unused. 200px is only the
-     floor before wrapping to fewer per row on a narrow screen. */
-  flex: 1 1 200px;
-  padding: 16px;
+  gap: 6px;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 10px 12px;
   text-align: left;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text);
   background: var(--panel-bg);
   border: 1px solid var(--border);
@@ -1132,5 +1196,60 @@
 
   .leaderboard__list {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/*
+ * .start-screen's 3-column grid has a combined minimum width (its three
+ * minmax() floors plus the column-gaps plus the page padding) of just over
+ * 1024px - below that, the grid can't shrink any further and the side
+ * columns get pushed off-screen entirely rather than wrapping, so this
+ * falls all the way back to the pre-3-column single stacked column instead
+ * of trying to half-apply the grid. order puts the title and the
+ * description/picker column first regardless of DOM position (leaderboard
+ * comes before them in markup, for the desktop grid's placement) - without
+ * it, a phone would see the leaderboard before even knowing what the game
+ * is. Leaderboard/Controls' own internal grids don't need a separate
+ * override here: the unconditional `.start-screen__column--* .foo__list`
+ * rules above already force them to one column regardless of viewport.
+ */
+@media (max-width: 1024px) {
+  .start-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 24px;
+  }
+
+  .start-screen__title {
+    order: 1;
+  }
+
+  .start-screen__column--main {
+    order: 2;
+  }
+
+  .start-screen__column--leaderboard {
+    order: 3;
+  }
+
+  .start-screen__column--controls {
+    order: 4;
+  }
+
+  .start-screen__column {
+    width: 100%;
+    max-width: 760px;
+  }
+
+  .start-screen__options {
+    flex-direction: column;
+  }
+
+  .start-screen__option {
+    flex: 1 1 auto;
+    padding: 16px;
+    font-size: 13px;
   }
 }

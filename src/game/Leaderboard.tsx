@@ -52,52 +52,54 @@ export function Leaderboard({ pendingScore }: LeaderboardProps) {
   return (
     <div className="leaderboard">
       <h2>Leaderboard</h2>
-      {showPending && !qualifies && (
-        <p className="leaderboard__note">That score didn't make the leaderboard this time.</p>
-      )}
-      {rows.length === 0 ? (
-        <p className="leaderboard__empty">No scores yet - be the first.</p>
-      ) : (
-        <ol className="leaderboard__list">
-          {rows.map((row, i) =>
-            row.kind === 'pending' ? (
-              <li key="pending" className="leaderboard__row leaderboard__row--pending">
-                <span className="leaderboard__rank">#{i + 1}</span>
-                <input
-                  type="text"
-                  className="leaderboard__name-input"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                  placeholder="Your name"
-                  maxLength={20}
-                  autoFocus
-                  aria-label="Your name"
-                />
-                <div className="leaderboard__pending-footer">
-                  <span className="leaderboard__score">{pendingScore}</span>
-                  <button type="button" className="leaderboard__save" onClick={handleSave}>
-                    Save
-                  </button>
-                </div>
-              </li>
-            ) : (
-              <li
-                key={`${row.entry.name}-${row.entry.score}-${i}`}
-                className={
-                  saved && row.entry.name === savedName && row.entry.score === pendingScore
-                    ? 'leaderboard__row leaderboard__row--you'
-                    : 'leaderboard__row'
-                }
-              >
-                <span className="leaderboard__rank">#{i + 1}</span>
-                <span className="leaderboard__name">{row.entry.name}</span>
-                <span className="leaderboard__score">{row.entry.score}</span>
-              </li>
-            ),
-          )}
-        </ol>
-      )}
+      <div className="leaderboard__body">
+        {showPending && !qualifies && (
+          <p className="leaderboard__note">That score didn't make the leaderboard this time.</p>
+        )}
+        {rows.length === 0 ? (
+          <p className="leaderboard__empty">No scores yet - be the first.</p>
+        ) : (
+          <ol className="leaderboard__list">
+            {rows.map((row, i) =>
+              row.kind === 'pending' ? (
+                <li key="pending" className="leaderboard__row leaderboard__row--pending">
+                  <span className="leaderboard__rank">#{i + 1}</span>
+                  <input
+                    type="text"
+                    className="leaderboard__name-input"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                    placeholder="Your name"
+                    maxLength={20}
+                    autoFocus
+                    aria-label="Your name"
+                  />
+                  <div className="leaderboard__pending-footer">
+                    <span className="leaderboard__score">{pendingScore}</span>
+                    <button type="button" className="leaderboard__save" onClick={handleSave}>
+                      Save
+                    </button>
+                  </div>
+                </li>
+              ) : (
+                <li
+                  key={`${row.entry.name}-${row.entry.score}-${i}`}
+                  className={
+                    saved && row.entry.name === savedName && row.entry.score === pendingScore
+                      ? 'leaderboard__row leaderboard__row--you'
+                      : 'leaderboard__row'
+                  }
+                >
+                  <span className="leaderboard__rank">#{i + 1}</span>
+                  <span className="leaderboard__name">{row.entry.name}</span>
+                  <span className="leaderboard__score">{row.entry.score}</span>
+                </li>
+              ),
+            )}
+          </ol>
+        )}
+      </div>
     </div>
   )
 }

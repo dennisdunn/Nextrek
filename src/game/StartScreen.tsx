@@ -66,50 +66,53 @@ export function StartScreen({ onSelect }: StartScreenProps) {
 
   return (
     <div className="start-screen">
-      <h1>Nextrek</h1>
-      <p className="start-screen__subtitle">Subspace Wumpus</p>
-
-      <p className="start-screen__description">
-        Hunt the Wumpus meets Asteroids, loosely based on 1971 BASIC <em>Star Trek</em>. Explore
-        the galaxy sector by sector, then drop into real-time combat the
-        moment you run into trouble. Destroy enough hostiles before the mission clock runs
-        out - you lose if time runs out, your ship is destroyed, or you're stranded with too
-        little energy left to move.
-      </p>
-
-      <p className="start-screen__hint">{hint}</p>
-      <div className="start-screen__options">
-        {(Object.keys(DIFFICULTY_COPY) as Difficulty[]).map((difficulty) => (
-          <button
-            key={difficulty}
-            type="button"
-            className={`start-screen__option start-screen__option--${difficulty}`}
-            onClick={() => onSelect(difficulty)}
-          >
-            <strong>{DIFFICULTY_COPY[difficulty].label}</strong>
-            <span>{DIFFICULTY_COPY[difficulty].body}</span>
-          </button>
-        ))}
+      <div className="start-screen__title">
+        <h1>Nextrek</h1>
+        <p className="start-screen__subtitle">Subspace Wumpus</p>
       </div>
 
-      <Leaderboard />
+      <div className="start-screen__column start-screen__column--leaderboard">
+        <Leaderboard />
+      </div>
 
-      {/*
-        Underneath the difficulty picker, not beside the description - it's
-        reference material nobody needs before starting a mission, and the
-        3-column grid (see .start-screen__controls in App.css) keeps it
-        short enough that it never has to compete for space with the
-        buttons that actually matter.
-      */}
-      <div className="start-screen__instructions">
-        <h2>Controls</h2>
-        <div className="start-screen__controls">
-          {CONTROLS.map(([key, action]) => (
-            <div className="start-screen__control-row" key={key}>
-              <span className="start-screen__key">{key}</span>
-              <span className="start-screen__action">{action}</span>
-            </div>
+      <div className="start-screen__column start-screen__column--main">
+        <p className="start-screen__description">
+          Hunt the Wumpus meets Asteroids, loosely based on 1971 BASIC <em>Star Trek</em>. Explore
+          the galaxy sector by sector, then drop into real-time combat the
+          moment you run into trouble. Destroy enough hostiles before the mission clock runs
+          out - you lose if time runs out, your ship is destroyed, or you're stranded with too
+          little energy left to move.
+        </p>
+
+        <p className="start-screen__hint">{hint}</p>
+        <div className="start-screen__options">
+          {(Object.keys(DIFFICULTY_COPY) as Difficulty[]).map((difficulty) => (
+            <button
+              key={difficulty}
+              type="button"
+              className={`start-screen__option start-screen__option--${difficulty}`}
+              onClick={() => onSelect(difficulty)}
+            >
+              <strong>{DIFFICULTY_COPY[difficulty].label}</strong>
+              <span>{DIFFICULTY_COPY[difficulty].body}</span>
+            </button>
           ))}
+        </div>
+      </div>
+
+      <div className="start-screen__column start-screen__column--controls">
+        <div className="start-screen__instructions">
+          <h2>Controls</h2>
+          <div className="start-screen__instructions-body">
+            <div className="start-screen__controls">
+              {CONTROLS.map(([key, action]) => (
+                <div className="start-screen__control-row" key={key}>
+                  <span className="start-screen__key">{key}</span>
+                  <span className="start-screen__action">{action}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
