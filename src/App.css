@@ -1217,6 +1217,15 @@
   .start-screen {
     display: flex;
     flex-direction: column;
+    /* .start-screen's base rule sets justify-content:center to center the
+       grid's columns horizontally. In a column flex container that property
+       instead controls the vertical axis, so without this override it
+       vertically centers the whole (much taller than the viewport) content
+       stack - pushing the title and description above y:0, into the
+       "before-start" overflow that a centered flex/grid container doesn't
+       let you scroll up into, so they render fully off-screen and
+       unreachable instead of just scrolled past. */
+    justify-content: flex-start;
     align-items: center;
     gap: 16px;
     padding: 24px;
@@ -1224,6 +1233,12 @@
 
   .start-screen__title {
     order: 1;
+    /* align-self:end (the base rule's desktop grid-row alignment trick)
+       also applies to a flex item, where it controls the cross axis -
+       horizontal, for a column flex container - and without this reset it
+       pins the title to the right edge instead of letting the container's
+       align-items:center above actually center it. */
+    align-self: center;
   }
 
   .start-screen__column--main {
