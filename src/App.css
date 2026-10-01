@@ -796,7 +796,7 @@
 .leaderboard__list {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px 16px;
+  gap: 10px 28px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -813,6 +813,7 @@
 
 .leaderboard__rank {
   flex: 0 0 auto;
+  margin-right: 4px;
   font-family: var(--mono);
   font-size: 11px;
   color: var(--accent);
@@ -1001,7 +1002,7 @@
 .start-screen__controls {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px 16px;
+  gap: 10px 28px;
 }
 
 .start-screen__control-row {
@@ -1022,6 +1023,7 @@
 .start-screen__action {
   flex: 1;
   min-width: 0;
+  text-align: right;
 }
 
 .start-screen__options {
