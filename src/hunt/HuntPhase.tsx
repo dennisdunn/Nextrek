@@ -73,6 +73,7 @@ export function HuntPhase({
     missionConfig,
     toggleWarp,
     allocateEnergy,
+    adjustEnergy,
     longRangeScan,
     subspaceScan,
   } = controller
@@ -94,6 +95,7 @@ export function HuntPhase({
               warpLocked={Boolean(encounter)}
               warpOffline={state.subsystems.warpDrive <= 0}
               onToggleWarp={toggleWarp}
+              onAdjustEnergy={adjustEnergy}
             />
           }
           toggle={
@@ -124,6 +126,9 @@ export function HuntPhase({
               neighbors={neighbors}
               known={known}
               anomalyKnown={anomalyKnown}
+              visited={state.visited}
+              collectedPowerUps={state.collectedPowerUps}
+              stardate={state.stardate}
               onSelect={onMove}
             />
           </div>
@@ -190,7 +195,7 @@ export function HuntPhase({
           subsystems={state.subsystems}
           torpedoes={state.torpedoes}
           startingEnergy={difficultyPreset.startingEnergy}
-          onAllocate={allocateEnergy}
+          onAllocate={(subsystem, level) => allocateEnergy(subsystem, level, Boolean(encounter))}
         />
         <CommsPanel log={state.log} />
       </div>

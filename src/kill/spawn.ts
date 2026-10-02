@@ -7,6 +7,7 @@ import {
   PHASER_BOLT_SPEED,
   PHASER_BOLT_TTL_MS,
   PLAYER_HITBOX_RADIUS,
+  PLAYER_SPAWN_STAR_CLEARANCE_DEG,
   PROJECTILE_RADIUS,
   STAR_HAZARD_RADIUS,
 } from '../balance'
@@ -26,7 +27,27 @@ function headingToVelocity(heading: number, speed: number): { x: number; y: numb
   return { x: speed * Math.sin(rad), y: -speed * Math.cos(rad) }
 }
 
+/**
+ * Picks a heading (degrees) for the player's combat entry, steering clear of
+ * a star hazard when one is present - `starAngleRad` is the same standard
+ * math angle (from the arena center, radians) the hazard was placed at, or
+ * null when there's no hazard this fight. Excludes the PLAYER_SPAWN_STAR_
+ * CLEARANCE_DEG arc either side of dead-on-star rather than resampling, so
+ * it always terminates in one draw.
+ */
+export function pickPlayerSpawnHeading(starAngleRad: number | null): number {
+  if (starAngleRad === null) return Math.random() * 360
+  // The hazard's placement angle, converted from standard math convention
+  // into this codebase's heading convention (0 = up, clockwise) - see
+  // headingToVelocity above.
+  const headingToStar = (starAngleRad * 180) / Math.PI + 90
+  const clearance = PLAYER_SPAWN_STAR_CLEARANCE_DEG
+  const heading = headingToStar + clearance + Math.random() * (360 - 2 * clearance)
+  return ((heading % 360) + 360) % 360
+}
+
 export interface SpawnPlayerOptions extends SpawnShipOptions {
+  speed?: number
   shieldEnergy?: number
   phaserEnergy?: number
 }
@@ -45,11 +66,13 @@ export function spawnPlayer(world: KillWorld, opts: SpawnPlayerOptions): number 
   addComponent(world, eid, ShieldEnergy)
   addComponent(world, eid, PhaserEnergy)
 
+  const heading = opts.heading ?? 0
+  const { x: vx, y: vy } = headingToVelocity(heading, opts.speed ?? 0)
   Position.x[eid] = opts.x
   Position.y[eid] = opts.y
-  Velocity.x[eid] = 0
-  Velocity.y[eid] = 0
-  Heading[eid] = opts.heading ?? 0
+  Velocity.x[eid] = vx
+  Velocity.y[eid] = vy
+  Heading[eid] = heading
   Radius[eid] = opts.radius ?? PLAYER_HITBOX_RADIUS
   Health[eid] = opts.health ?? BASE_HULL_HEALTH
   Player[eid] = 1

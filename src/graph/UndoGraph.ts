@@ -138,4 +138,22 @@ export class UndoGraph<N = unknown, E = unknown> {
     fn()
     return true
   }
+
+  /**
+   * Pop the undo stack repeatedly until back at `depth` (a value previously
+   * read from `undoDepth`), reverting every mutation made since - not just
+   * the most recent one. Use this to unwind an entire span of activity as a
+   * single logical event when other mutations might have been pushed in
+   * between (e.g. warp drive: `depth` is read right before `replaceEdges`
+   * engages it, so disengaging later unwinds the engagement *and* anything
+   * that happened while it was active, such as an anomaly triggered mid-
+   * flight - a plain undo() would only pop that most recent entry and leave
+   * the warp edge-set itself still live). A no-op if already at or below
+   * `depth`.
+   */
+  undoTo(depth: number): void {
+    while (this.undoStack.length > depth) {
+      this.undo()
+    }
+  }
 }

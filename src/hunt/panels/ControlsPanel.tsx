@@ -1,4 +1,6 @@
 import { useEffect } from 'react'
+import { ENERGY_ALLOCATION_STEP } from '../../balance'
+import type { Subsystem } from '../subsystems'
 
 export interface ControlsPanelProps {
   onLongRangeScan: () => void
@@ -8,6 +10,8 @@ export interface ControlsPanelProps {
   warpLocked: boolean
   warpOffline: boolean
   onToggleWarp: () => void
+  /** Adds ENERGY_ALLOCATION_STEP units to a subsystem's current allocation - increment-only (H/P, no visible control), the same way combat itself only ever spends shields/phasers down. Standing a subsystem down again is the Engineering slider's job, not a keyboard shortcut. */
+  onAdjustEnergy: (subsystem: Subsystem, amount: number) => void
 }
 
 const FORM_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
@@ -25,6 +29,7 @@ export function ControlsPanel({
   warpLocked,
   warpOffline,
   onToggleWarp,
+  onAdjustEnergy,
 }: ControlsPanelProps) {
   const warpDisabled = warpLocked || warpOffline
   const warpTitle = warpLocked
@@ -56,11 +61,17 @@ export function ControlsPanel({
         case 'i':
           if (warpEngaged && !warpDisabled) onToggleWarp()
           break
+        case 'h':
+          onAdjustEnergy('shields', ENERGY_ALLOCATION_STEP)
+          break
+        case 'p':
+          onAdjustEnergy('phasers', ENERGY_ALLOCATION_STEP)
+          break
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onLongRangeScan, onSubspaceScan, onToggleWarp, warpEngaged, warpDisabled])
+  }, [onLongRangeScan, onSubspaceScan, onToggleWarp, warpEngaged, warpDisabled, onAdjustEnergy])
 
   return (
     <>

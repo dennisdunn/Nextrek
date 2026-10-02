@@ -19,6 +19,17 @@
   overflow: hidden;
 }
 
+/*
+ * Deliberately no flex-wrap on .hunt-phase: `flex-wrap: wrap` combined
+ * with `align-items: stretch` and the nested flex:1 chain (panel body ->
+ * galaxy-map) made the browser size .panel--sciences from its content
+ * instead of the container - the map rendered at a fixed ~750-900px
+ * height regardless of viewport, silently overflowing .hunt-phase's
+ * overflow:hidden and clipping everything beneath the fold. Narrow screens
+ * switch to a column layout instead (the max-width:860px query at the
+ * bottom of this file), which doesn't hit the same interaction.
+ */
+
 .hunt-sidebar {
   display: flex;
   flex-direction: column;
@@ -28,18 +39,26 @@
   min-height: 0;
   /* Room for the first frame's nameplate, which sits centered on its top bar and so pokes above the frame's own box. */
   padding-top: 0.75rem;
-  overflow-y: hidden;
+  /* auto, not hidden: on a landscape phone wide enough to stay in the row
+     layout, there isn't always enough height for Status + Engineering +
+     Comms stacked. .panel's flex-shrink:0 stops Status/Engineering from
+     being silently crushed to fit - this is what lets the leftover
+     overflow become reachable by scrolling the sidebar instead. */
+  overflow-y: auto;
 }
 
 /*
- * Status and Engineering are a fixed, content-sized height - only Comms is
- * expected to grow past the fold, so it's the one panel that claims the
- * sidebar's leftover space and scrolls internally (see .log), rather than
- * the whole sidebar needing to scroll as a unit.
+ * Status and Engineering are a fixed, content-sized height (.panel's
+ * flex-shrink:0) - only Comms is expected to grow past the fold, so it's
+ * the one panel that claims the sidebar's leftover space and scrolls
+ * internally (see .log), rather than the whole sidebar needing to scroll.
+ * On a short enough screen it still shrinks to its min-height floor and
+ * lets the sidebar's own scroll reach the rest.
  */
 .panel--comms {
   flex: 1;
-  min-height: 0;
+  /* A real floor, not 0 - keeps a few lines of the log visible on a short landscape screen rather than crushing it away entirely. */
+  min-height: 110px;
 }
 
 .panel--comms .panel__body {
@@ -116,55 +135,6 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-}
-
-/*
- * Deliberately no flex-wrap here: `flex-wrap: wrap` combined with
- * `align-items: stretch` and the nested flex:1 chain below it (panel body
- * -> galaxy-map) made the browser size .panel--sciences from its content
- * instead of the container - the map rendered at a fixed ~750-900px
- * height regardless of viewport, silently overflowing .hunt-phase's
- * overflow:hidden and clipping the scan buttons and comms log beneath the
- * fold. A media query switches to a column layout on narrow screens
- * instead, which doesn't hit the same interaction. It sits after the
- * layout rules it overrides (down to the Sciences panel) - same
- * specificity, so source order decides.
- */
-@media (max-width: 860px) {
-  .hunt-phase {
-    flex-direction: column;
-    overflow-y: auto;
-  }
-
-  /*
-   * In a column, .hunt-phase scrolls as a whole - so its children must
-   * keep their natural height rather than shrinking to fit the viewport
-   * (the wide layout's flex-basis would otherwise become a fixed height,
-   * and the sidebar's overflow: hidden clipped Engineering and Comms).
-   * The main station has no content height of its own (the map fills
-   * whatever it's given), so it gets an explicit one.
-   */
-  .main-station {
-    flex: none;
-    height: 70svh;
-    min-height: 420px;
-  }
-
-  .hunt-sidebar {
-    flex: none;
-    min-width: 0;
-    overflow: visible;
-  }
-
-  .panel--comms,
-  .panel--comms .panel__body,
-  .panel--comms .log {
-    flex: none;
-  }
-
-  .panel--comms .log {
-    max-height: 220px;
-  }
 }
 
 /*
@@ -357,6 +327,19 @@
 
 .sector-marker--star .sector-marker__core {
   fill: #f59e0b;
+}
+
+/*
+ * A barrier's power-up is a consolation prize, not a hazard - it shares
+ * the starbase's green rather than the anomaly wedge's lilac, same
+ * reasoning as .sector-marker--star staying off-family for the opposite
+ * reason (a kill-phase hazard, not a navigational one).
+ */
+.sector-marker--powerup-energy,
+.sector-marker--powerup-torpedoes {
+  fill: var(--ok);
+  stroke: var(--ok);
+  stroke-width: 1.5;
 }
 
 /* Drawn on top of the wedges once both ends of a conduit are identified. */
@@ -635,45 +618,46 @@
   font-size: 13px;
 }
 
-
-.end-screen,
-.start-screen {
+/*
+ * End screen: the result frame, then the leaderboard as its own frame
+ * below it. `safe center` rather than plain center - once the two stack
+ * taller than the viewport, plain centering pushes the top of the stack
+ * above y:0, where a scroll container can't reach it.
+ */
+.end-screen {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: safe center;
+  gap: 40px;
   padding: 40px 24px 24px;
   overflow-y: auto;
 }
 
-.end-screen__frame,
-.start-screen__frame {
+.end-screen__frame {
+  box-sizing: border-box;
   width: min(100%, 760px);
+  flex-shrink: 0;
 }
 
-.end-screen__frame > .pk-title,
-.start-screen__frame > .pk-title {
+.end-screen__frame > .pk-title {
   margin: 0;
   font-size: 1.75rem;
   font-weight: 600;
 }
 
-.end-screen__frame > .pk-content,
-.start-screen__frame > .pk-content {
+.end-screen__frame > .pk-content {
   margin-top: 2rem;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.end-screen p,
-.start-screen p {
-  margin: 0;
-  color: var(--text);
-}
-
 .end-screen p {
+  margin: 0;
   max-width: 40ch;
+  color: var(--text);
 }
 
 .end-screen__stats {
@@ -681,32 +665,315 @@
   max-width: 320px;
 }
 
-.end-screen .pk-button {
+.end-screen__score {
+  color: var(--accent);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.end-screen__frame .pk-button {
   align-self: flex-start;
   padding: 10px 24px;
 }
 
-.start-screen p.start-screen__subtitle {
+/*
+ * Shared between StartScreen (read-only) and EndScreen (with a pending
+ * score's inline name entry) - see game/Leaderboard.tsx. A Protokuda frame
+ * like the in-game stations, nameplate and all.
+ */
+.leaderboard {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 760px;
+  flex-shrink: 0;
+}
+
+.leaderboard > .pk-title,
+.start-screen__instructions > .pk-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.leaderboard > .pk-content,
+.start-screen__instructions > .pk-content {
+  margin-top: 1.25rem;
+}
+
+.leaderboard__empty,
+.leaderboard__note {
+  margin: 0;
+  font-size: 14px;
+  color: var(--label);
+}
+
+.leaderboard__note {
+  margin-bottom: 8px;
+}
+
+/* 3 columns x N rows - rank order still reads top-to-bottom because a
+   row-major grid (the CSS default) fills left-to-right one row before
+   wrapping, so #1-3 land in row 1, #4-6 in row 2, and so on. */
+.leaderboard__list {
+  display: grid;
+  /* minmax(0, ...) rather than plain 1fr, whose min-content floor let the
+     pending row's name input + Save button push the grid wider than the
+     frame. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 28px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.leaderboard__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  font-size: 14px;
+}
+
+.leaderboard__rank {
+  flex: 0 0 auto;
+  margin-right: 4px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--label);
+}
+
+.leaderboard__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  color: var(--text);
+}
+
+.leaderboard__score {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  color: var(--text-h);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The cell holding the just-earned score's name input, before it's saved. */
+.leaderboard__row--pending {
+  background: var(--accent-bg);
+}
+
+/* The cell that was just saved - a lighter callout than --pending's, just
+   enough to find your own entry in a list of 10 without it looking like
+   it's still awaiting input. */
+.leaderboard__row--you {
+  background: var(--accent-bg);
+  opacity: 0.7;
+}
+
+/* Overrides Protokuda's solid-accent input fill - this one sits on a tinted row and reads better as an outlined field. */
+.leaderboard__name-input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text-h);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 3px 6px;
+}
+
+.leaderboard__pending-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.leaderboard__save {
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+/*
+ * 3-column layout - leaderboard / title+picker / controls side by side,
+ * narrower center column, wide gaps so the page doesn't feel like one
+ * crowded block.
+ *
+ * Two grid rows, not one: the title (h1 + subtitle) is its own row,
+ * spanning only the center column, so leaderboard/controls - placed in row
+ * 2 alongside the rest of the center column - line up with the *top of the
+ * description paragraph*, not the title above it. Explicit grid-column/
+ * grid-row placement below, since default auto-placement would otherwise
+ * fill row 1 left-to-right across all three columns first.
+ */
+.start-screen {
+  box-sizing: border-box;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(380px, 460px) minmax(220px, 280px);
+  justify-content: center;
+  align-items: start;
+  row-gap: 16px;
+  column-gap: 56px;
+  padding: 40px 48px;
+  width: 100%;
+  overflow-y: auto;
+}
+
+.start-screen__title {
+  grid-column: 2;
+  grid-row: 1;
+  /* The grid's own align-items: start sizes every item to its own content
+     height and pins it to the top of its row track - harmless for row 2
+     (all three items are about as tall as each other), but row 1 only has
+     this one item, so its track stretches to match the page's leftover
+     height and align-self: end is what actually keeps the title pinned to
+     the bottom of that tall track, right above the row below, rather than
+     floating at the top of it with a dead gap underneath. */
+  align-self: end;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
+
+.start-screen__title h1 {
+  margin: 0;
+  font-size: 3rem;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: var(--pk-letter-spacing);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.start-screen__title > p.start-screen__subtitle {
+  margin: 0;
   color: var(--text-h);
   font-size: 1.25rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
+.start-screen__column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  /* Room for the side frames' nameplates, which poke above their top bar. */
+  padding-top: 0.75rem;
+}
+
+.start-screen__column--leaderboard {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.start-screen__column--main {
+  grid-column: 2;
+  grid-row: 2;
+  align-items: center;
+  text-align: center;
+}
+
+.start-screen__column--controls {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.start-screen__column--main > p {
+  margin: 0;
+  color: var(--text);
+}
+
+.start-screen__description {
+  /* width:100% (not just max-width) so it actually shrinks to the
+     available space on a narrow phone instead of trying to hold this
+     max-width and running text off the right edge - a non-stretched flex
+     item's width otherwise resolves from content, not from its container. */
+  width: 100%;
+  max-width: 760px;
+  font-size: 17px;
+  line-height: 1.6;
+  /* Overrides the column's text-align:center - every wrapped line
+     stretches to both edges instead of each being independently centered
+     with a ragged left/right edge. text-align-last is spelled out rather
+     than relied on as the (correct) default for justify. */
+  text-align: justify;
+  text-align-last: left;
+}
+
+/* Needs the same `.start-screen__column--main > p.<class>` shape as the
+   plain `> p` rule above - that rule's color would otherwise beat a bare
+   .start-screen__hint selector on specificity. */
+.start-screen__column--main > p.start-screen__hint {
+  max-width: 52ch;
+  font-size: 15px;
+  color: var(--pk-anakiwa);
+}
+
+.start-screen__instructions {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* The controls reference and the leaderboard both live in a narrow side
+   column here, with no room for their own 3-column grids - each drops to
+   a single column of rows. */
+.start-screen__column--controls .start-screen__controls,
+.start-screen__column--leaderboard .leaderboard__list {
+  grid-template-columns: 1fr;
+}
+
+.start-screen__controls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px 28px;
+}
+
+.start-screen__control-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.start-screen__key {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-h);
+}
+
+.start-screen__action {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+}
+
 .start-screen__options {
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  /* Single row even though the center column is narrow here - each card
+     shrinks to an equal share (flex: 1 1 0) rather than keeping a 200px
+     floor, which is what forced wrapping to a stack in this column width. */
+  gap: 10px;
   margin-top: 8px;
+  width: 100%;
 }
 
 .start-screen__option {
-  flex: 1 1 200px;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
-  font-size: 14px;
+  gap: 6px;
+  padding: 10px 12px;
+  font-size: 13px;
   cursor: pointer;
   --pk-button-fg: var(--pk-black);
   --pk-button-hover-fg: var(--pk-black);
@@ -735,4 +1002,156 @@
 .start-screen__option--hard {
   --pk-button-bg: var(--pk-chestnut-rose);
   --pk-button-hover-bg: var(--pk-orange-peel);
+}
+
+/*
+ * Every media query below is deliberately last in the file: each selector
+ * in them also has a base (non-media) rule above, and CSS resolves
+ * same-specificity rules by source order regardless of @media nesting - a
+ * media query placed earlier than the rule it's meant to override LOSES
+ * to it on a matching viewport. That's not hypothetical: the narrow-screen
+ * hunt layout below once sat right after .hunt-phase's own base rule and
+ * silently did nothing, leaving the sidebar clipped on phones. Keep
+ * anything added here after every rule it's meant to beat.
+ */
+
+@media (max-width: 860px) {
+  .hunt-phase {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  /*
+   * In a column, .hunt-phase scrolls as a whole - so its children must
+   * keep their natural height rather than shrinking to fit the viewport
+   * (the wide layout's flex-basis would otherwise become a fixed height,
+   * crushing the sidebar down until Engineering and Comms were clipped).
+   * The main station has no content height of its own (the map fills
+   * whatever it's given), so it gets an explicit one.
+   */
+  .main-station {
+    flex: none;
+    height: 70svh;
+    min-height: 420px;
+  }
+
+  .hunt-sidebar {
+    flex: none;
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .panel--comms,
+  .panel--comms .panel__body,
+  .panel--comms .log {
+    flex: none;
+  }
+
+  .panel--comms .log {
+    max-height: 220px;
+  }
+}
+
+/*
+ * At 64px each with 12px gaps, the two touch-button clusters need ~356px
+ * total (216px movement + 140px fire), more than the Tactical panel
+ * actually has on a phone in portrait - the fire cluster, pushed to the
+ * right edge by justify-content:space-between, overflowed straight off the
+ * side of the screen. Shrinking to 44px/6px below ~500px width brings the
+ * total down to ~238px, inside even the narrowest current iPhone.
+ */
+@media (max-width: 500px) {
+  .touch-controls {
+    padding: 10px;
+  }
+
+  .touch-controls__cluster {
+    gap: 6px;
+  }
+
+  .touch-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
+  }
+
+  .touch-btn--fire,
+  .touch-btn--torpedo {
+    font-size: 10px;
+  }
+}
+
+/*
+ * Below roughly a small phone's portrait width, 3 columns leaves each one
+ * too narrow to read - fewer columns give each significantly more room at
+ * the cost of more rows.
+ */
+@media (max-width: 480px) {
+  .start-screen__controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* One column, not two: the pending row (rank, name input, score, Save)
+     doesn't fit in half a phone's width. */
+  .leaderboard__list {
+    grid-template-columns: 1fr;
+  }
+}
+
+/*
+ * .start-screen's 3-column grid has a combined minimum width (its three
+ * minmax() floors plus the column-gaps plus the page padding) of just over
+ * 1024px - below that, the side columns get pushed off-screen rather than
+ * wrapping, so this falls back to a single stacked column. order puts the
+ * title and the description/picker column first regardless of DOM
+ * position (leaderboard comes before them in markup, for the desktop
+ * grid's placement) - without it, a phone would see the leaderboard
+ * before even knowing what the game is.
+ */
+@media (max-width: 1024px) {
+  .start-screen {
+    display: flex;
+    flex-direction: column;
+    /* Not center: in a column flex container justify-content is the
+       vertical axis, and centering a stack taller than the viewport
+       pushes its top above y:0, where it can't be scrolled to. */
+    justify-content: flex-start;
+    align-items: center;
+    gap: 16px;
+    padding: 24px;
+  }
+
+  .start-screen__title {
+    order: 1;
+    /* Reset the desktop grid's align-self:end - on a column flex item it
+       would pin the title to the right edge instead. */
+    align-self: center;
+  }
+
+  .start-screen__column--main {
+    order: 2;
+  }
+
+  .start-screen__column--leaderboard {
+    order: 3;
+  }
+
+  .start-screen__column--controls {
+    order: 4;
+  }
+
+  .start-screen__column {
+    width: 100%;
+    max-width: 760px;
+  }
+
+  .start-screen__options {
+    flex-direction: column;
+  }
+
+  .start-screen__option {
+    flex: 1 1 auto;
+    padding: 16px;
+    font-size: 14px;
+  }
 }

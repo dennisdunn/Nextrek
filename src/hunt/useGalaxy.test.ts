@@ -1,6 +1,8 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { BARRIER_POWERUP_COOLDOWN_STARDATES } from '../balance'
 import { sectorId } from './cartography'
+import { impulseNeighbors } from './galaxy'
 import { HOSTILE_QUOTA, STARDATE_PER_NORMAL_MOVE, STARDATE_PER_WARP_MOVE } from './mission'
 import { LRS_COST_IMPULSE, LRS_COST_WARP, MOVE_COST_NORMAL, STARTING_ENERGY, STARTING_TORPEDOES, SUBSPACE_SCAN_MULTIPLIER, WARP_ENGAGE_COST } from './ship'
 import { REFUND_EFFICIENCY } from './subsystems'
@@ -109,6 +111,99 @@ describe('moveTo', () => {
     expect(result.current.state.log.at(-1)).toMatch(/barrier collapses inward/)
   })
 
+  it('a barrier energy power-up fully refills the reserve and marks itself collected', () => {
+    const { result } = makeGalaxy()
+    const target = result.current.neighbors[0]
+    const node = result.current.galaxy.getNode(target)!
+    result.current.galaxy.setNode(target, { ...node, anomaly: { kind: 'barrier', powerUp: 'energy' } })
+
+    act(() => {
+      result.current.moveTo(target)
+    })
+
+    expect(result.current.state.energy.reserve).toBe(STARTING_ENERGY)
+    expect(result.current.state.collectedPowerUps.has(target)).toBe(true)
+    expect(result.current.state.log.some((line) => /Energy cache found/.test(line))).toBe(true)
+  })
+
+  it('a barrier torpedo power-up restocks the torpedo bay and marks itself collected', () => {
+    const { result } = makeGalaxy()
+    const target = result.current.neighbors[0]
+    const node = result.current.galaxy.getNode(target)!
+    result.current.galaxy.setNode(target, { ...node, anomaly: { kind: 'barrier', powerUp: 'torpedoes' } })
+    // Spend some torpedoes first so the restock is actually observable.
+    act(() => result.current.resolveEncounter(0, 0, 0, STARTING_TORPEDOES - 3, 0))
+
+    act(() => {
+      result.current.moveTo(target)
+    })
+
+    expect(result.current.state.torpedoes).toBe(STARTING_TORPEDOES)
+    expect(result.current.state.collectedPowerUps.has(target)).toBe(true)
+    expect(result.current.state.log.some((line) => /Torpedo cache found/.test(line))).toBe(true)
+  })
+
+  it('a barrier with no power-up behaves exactly as before - no unintended grant or log line', () => {
+    const { result } = makeGalaxy()
+    const target = result.current.neighbors[0]
+    const node = result.current.galaxy.getNode(target)!
+    result.current.galaxy.setNode(target, { ...node, anomaly: { kind: 'barrier' } })
+
+    act(() => {
+      result.current.moveTo(target)
+    })
+
+    expect(result.current.state.collectedPowerUps.size).toBe(0)
+    expect(result.current.state.log.some((line) => /cache found/.test(line))).toBe(false)
+  })
+
+  it('does not re-grant a power-up before its cooldown has elapsed', () => {
+    const { result } = makeGalaxy()
+    const target = result.current.neighbors[0]
+    const node = result.current.galaxy.getNode(target)!
+    result.current.galaxy.setNode(target, { ...node, anomaly: { kind: 'barrier', powerUp: 'torpedoes' } })
+
+    act(() => result.current.moveTo(target)) // first draw
+    act(() => result.current.resolveEncounter(0, 0, 0, STARTING_TORPEDOES - 5, 0)) // spend some, so a re-draw would be observable
+    const away = result.current.galaxy.outgoingEdges(target)[0].to
+    act(() => result.current.moveTo(away))
+    // barrier() only strips incoming edges - restore one by hand rather than
+    // simulating a full warp-heal cycle, since only the cooldown is under test here.
+    result.current.galaxy.addEdge({ from: away, to: target })
+
+    act(() => result.current.moveTo(target)) // re-enter almost immediately - well under the cooldown
+
+    expect(result.current.state.torpedoes).toBe(STARTING_TORPEDOES - 5)
+    expect(result.current.state.log.at(-1)).toBe("The cache here hasn't recharged yet.")
+  })
+
+  it('re-grants a power-up once its cooldown has elapsed', () => {
+    const { result } = makeGalaxy()
+    const target = result.current.neighbors[0]
+    const node = result.current.galaxy.getNode(target)!
+    result.current.galaxy.setNode(target, { ...node, anomaly: { kind: 'barrier', powerUp: 'torpedoes' } })
+
+    act(() => result.current.moveTo(target)) // first draw
+    act(() => result.current.resolveEncounter(0, 0, 0, STARTING_TORPEDOES - 5, 0)) // spend some, so a re-draw would be observable
+    const away = result.current.galaxy.outgoingEdges(target)[0].to
+    act(() => result.current.moveTo(away))
+    const shuttleNeighbor = result.current.galaxy.outgoingEdges(away).find((e) => e.to !== target)!.to
+
+    // Enough back-and-forth impulse moves to clear BARRIER_POWERUP_COOLDOWN_STARDATES.
+    const stepsNeeded = Math.ceil(BARRIER_POWERUP_COOLDOWN_STARDATES / STARDATE_PER_NORMAL_MOVE) + 2
+    let atAway = true
+    for (let i = 0; i < stepsNeeded; i++) {
+      act(() => result.current.moveTo(atAway ? shuttleNeighbor : away))
+      atAway = !atAway
+    }
+
+    result.current.galaxy.addEdge({ from: result.current.state.position, to: target })
+    act(() => result.current.moveTo(target)) // re-enter well after the cooldown
+
+    expect(result.current.state.torpedoes).toBe(STARTING_TORPEDOES)
+    expect(result.current.state.log.at(-1)).toBe('Torpedo cache found - torpedo bay restocked.')
+  })
+
   it('a gate redirects the ship to a different, non-anomaly sector', () => {
     const { result } = makeGalaxy()
     const target = result.current.neighbors[0]
@@ -177,6 +272,25 @@ describe('toggleWarp', () => {
     expect(result.current.state.warpEngaged).toBe(false)
     expect(result.current.state.log.at(-1)).toMatch(/offline/)
   })
+
+  it('restores real impulse neighbors after disengaging past a barrier entered mid-flight', () => {
+    const { result } = makeGalaxy()
+    act(() => result.current.toggleWarp())
+    const target = result.current.neighbors[0]
+    const node = result.current.galaxy.getNode(target)!
+    result.current.galaxy.setNode(target, { ...node, anomaly: { kind: 'barrier' } })
+
+    // Entering the barrier while under warp pushes its own edge-removal on
+    // top of the warp engagement itself - a naive single-pop disengage
+    // would only undo that and leave the warp-radius network still live.
+    act(() => result.current.moveTo(target))
+    const away = result.current.galaxy.outgoingEdges(target)[0].to
+    act(() => result.current.moveTo(away))
+
+    act(() => result.current.toggleWarp())
+
+    expect(result.current.galaxy.neighbors(away).sort()).toEqual(impulseNeighbors(away).sort())
+  })
 })
 
 describe('allocateEnergy', () => {
@@ -199,6 +313,75 @@ describe('allocateEnergy', () => {
     expect(result.current.state.subsystems.shieldGenerator).toBe(50)
 
     act(() => result.current.allocateEnergy('shields', 100))
+
+    expect(result.current.state.energy.shields).toBe(50)
+  })
+
+  it('credits a mid-combat decrease at REFUND_EFFICIENCY instead of 1:1 - closes the drag-to-zero loophole', () => {
+    const { result } = makeGalaxy()
+
+    act(() => result.current.allocateEnergy('shields', 40))
+    expect(result.current.state.energy).toEqual({ reserve: STARTING_ENERGY - 40, shields: 40, phasers: 0 })
+
+    act(() => result.current.allocateEnergy('shields', 10, true))
+
+    // Only the 30-unit decrease is lossy - the 10 units still allocated
+    // aren't touched, so this isn't the same as ending the encounter and
+    // refunding the whole leftover.
+    const expectedReserve = STARTING_ENERGY - 40 + 30 * REFUND_EFFICIENCY
+    expect(result.current.state.energy).toEqual({ reserve: expectedReserve, shields: 10, phasers: 0 })
+  })
+
+  it('still credits a decrease at full value outside combat', () => {
+    const { result } = makeGalaxy()
+
+    act(() => result.current.allocateEnergy('shields', 40))
+    act(() => result.current.allocateEnergy('shields', 10, false))
+
+    expect(result.current.state.energy).toEqual({ reserve: STARTING_ENERGY - 10, shields: 10, phasers: 0 })
+  })
+
+  it('still credits an in-combat increase at full cost - only decreases are lossy', () => {
+    const { result } = makeGalaxy()
+
+    act(() => result.current.allocateEnergy('shields', 40, true))
+
+    expect(result.current.state.energy).toEqual({ reserve: STARTING_ENERGY - 40, shields: 40, phasers: 0 })
+  })
+})
+
+describe('adjustEnergy', () => {
+  it('adds to the current allocation instead of setting an absolute level', () => {
+    const { result } = makeGalaxy()
+
+    act(() => result.current.adjustEnergy('shields', 10))
+    expect(result.current.state.energy).toEqual({ reserve: STARTING_ENERGY - 10, shields: 10, phasers: 0 })
+
+    act(() => result.current.adjustEnergy('shields', 10))
+    expect(result.current.state.energy).toEqual({ reserve: STARTING_ENERGY - 20, shields: 20, phasers: 0 })
+  })
+
+  it('compounds correctly across repeated presses batched into one render', () => {
+    const { result } = makeGalaxy()
+
+    act(() => {
+      result.current.adjustEnergy('phasers', 10)
+      result.current.adjustEnergy('phasers', 10)
+      result.current.adjustEnergy('phasers', 10)
+    })
+
+    expect(result.current.state.energy).toEqual({ reserve: STARTING_ENERGY - 30, shields: 0, phasers: 30 })
+  })
+
+  it("clamps to the subsystem's health-scaled ceiling rather than overdrawing reserve", () => {
+    const { result } = makeGalaxy()
+    vi.spyOn(Math, 'random').mockReturnValue(0.2) // SHIP_SYSTEMS[1] === 'shieldGenerator'
+    act(() => {
+      result.current.resolveEncounter(50, 0, 0, STARTING_TORPEDOES, 0)
+    })
+    expect(result.current.state.subsystems.shieldGenerator).toBe(50)
+
+    act(() => result.current.adjustEnergy('shields', 1000))
 
     expect(result.current.state.energy.shields).toBe(50)
   })
@@ -243,6 +426,20 @@ describe('resolveEncounter', () => {
 
     const totalHealth = Object.values(result.current.state.subsystems).reduce((a, b) => a + b, 0)
     expect(totalHealth).toBe(6 * 100 - 30)
+  })
+
+  it('a ship-destroyed encounter logs a hull-breach message instead of the ordinary resolution chatter', () => {
+    const { result } = makeGalaxy()
+
+    act(() => {
+      result.current.resolveEncounter(100, 0, 0, STARTING_TORPEDOES, 1, true)
+    })
+
+    expect(result.current.state.shipDestroyed).toBe(true)
+    // The kill still counts toward the end screen's tally...
+    expect(result.current.state.hostilesDestroyed).toBe(1)
+    // ...but the log reports the loss, not the usual refund/quota/damage lines.
+    expect(result.current.state.log.at(-1)).toBe('Hull breach - the ship is lost.')
   })
 })
 
@@ -327,5 +524,30 @@ describe('status', () => {
     expect(result.current.state.energy.reserve).toBeLessThan(MOVE_COST_NORMAL)
     expect(result.current.status).toBe('defeat')
     expect(result.current.defeatReason).toBe('stranded')
+  })
+
+  it("reports a destroyed defeat once a kill-phase encounter ends in the ship's destruction", () => {
+    const { result } = makeGalaxy()
+
+    act(() => {
+      result.current.resolveEncounter(100, 0, 0, STARTING_TORPEDOES, 0, true)
+    })
+
+    expect(result.current.status).toBe('defeat')
+    expect(result.current.defeatReason).toBe('destroyed')
+  })
+
+  it('a destroyed ship still reports defeat even if that same encounter met the hostile quota', () => {
+    // Priority test: victory is normally checked first (see mission.ts's
+    // missionStatus), but a ship that didn't survive the fight can't have
+    // won it - shipDestroyed has to outrank a simultaneously-met quota.
+    const { result } = makeGalaxy()
+
+    act(() => {
+      result.current.resolveEncounter(100, 0, 0, STARTING_TORPEDOES, HOSTILE_QUOTA, true)
+    })
+
+    expect(result.current.status).toBe('defeat')
+    expect(result.current.defeatReason).toBe('destroyed')
   })
 })

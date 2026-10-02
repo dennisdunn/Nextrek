@@ -65,6 +65,16 @@ export const HOSTILE_QUOTA = 15
 /** Stardates allotted for the whole mission, starting from STARTING_STARDATE. */
 export const STARDATE_BUDGET = 20
 
+/**
+ * A clean, unhurried, resource-light Normal-difficulty win scores roughly
+ * this - not a hard cap (see hunt/mission.ts's missionScore): a victory
+ * with more hostiles destroyed than the quota required pushes past it,
+ * same as arcade scoring that keeps counting past a "perfect" run instead
+ * of stopping there. Easy/Hard read proportionally lower/higher for the
+ * same relative performance - see DIFFICULTY_PRESETS' scoreMultiplier.
+ */
+export const MISSION_SCORE_MAX = 1000
+
 // ---------------------------------------------------------------------------
 // Ship subsystems (hunt/subsystems.ts)
 // ---------------------------------------------------------------------------
@@ -101,6 +111,29 @@ export const ANOMALY_DENSITY = 0.08
 export const STARBASE_DENSITY = 0.05
 /** Fraction of hostile sectors (not otherwise complicated by an anomaly) that also get a star hazard. */
 export const STAR_HAZARD_DENSITY = 0.1
+
+/**
+ * Fraction of barrier sectors (specifically - not gate or conduit) that
+ * also hold a resource cache: a consolation prize for a hazard that's
+ * otherwise pure downside. At Normal's numbers this works out to roughly
+ * ANOMALY_DENSITY * 1/3 (barrier is 1 of 3 anomaly kinds) * this fraction
+ * of all sectors - well under STARBASE_DENSITY, so stumbling into one
+ * stays notably rarer than finding a real starbase.
+ */
+export const BARRIER_POWERUP_CHANCE = 0.4
+
+/** Coin flip between the two power-up kinds once a barrier is chosen to have one. */
+export const BARRIER_POWERUP_ENERGY_CHANCE = 0.5
+
+/**
+ * Stardates that must pass after collecting a barrier's cache before it can
+ * be drawn from again (~15% of Normal's STARDATE_BUDGET). Only matters if
+ * the barrier is still reachable at all - an impulse-entered barrier seals
+ * itself permanently on the way in (see useGalaxy.ts's moveTo), so in
+ * practice only a warp-entered one (which heals) is ever a candidate for a
+ * second draw.
+ */
+export const BARRIER_POWERUP_COOLDOWN_STARDATES = 3
 
 // ---------------------------------------------------------------------------
 // Combat loadout (kill/loadout.ts)
@@ -159,6 +192,15 @@ export const HOSTILE_HITBOX_RADIUS = 16
 export const HOSTILE_DRIFT_SPEED_MIN = 40
 export const HOSTILE_DRIFT_SPEED_MAX = 80
 
+// The player enters combat already moving, in a random direction at a
+// speed roughly midway to MAX_SPEED - never a standing start, but not
+// already at full thrust either.
+export const PLAYER_SPAWN_SPEED_MIN = 100
+export const PLAYER_SPAWN_SPEED_MAX = 160
+
+/** Degrees of heading, either side of dead-on, excluded from the player's random spawn direction when a star hazard is present - keeps the ship from starting out flying straight into it. */
+export const PLAYER_SPAWN_STAR_CLEARANCE_DEG = 60
+
 /** A hostile's first shot is delayed by a random amount up to this, so a pack doesn't volley in perfect sync on spawn. */
 export const HOSTILE_FIRE_STAGGER_MS = 1000
 
@@ -181,6 +223,9 @@ export const COMMS_LOG_LIMIT = 20
 
 /** Reserve power bar reads as critically low below this percentage. */
 export const LOW_POWER_THRESHOLD = 20
+
+/** Units of shields or phasers added to the current allocation per keyboard shortcut press (Q/E) - see ControlsPanel.tsx. */
+export const ENERGY_ALLOCATION_STEP = 10
 
 // ---------------------------------------------------------------------------
 // Player ship handling (kill/input.ts)
@@ -210,6 +255,8 @@ export interface DifficultyPreset {
   maxHostilesPerSector: number
   startingEnergy: number
   startingTorpedoes: number
+  /** Multiplies the victory mission score (hunt/mission.ts's missionScore) - a harder mission scores more for the same relative performance. */
+  scoreMultiplier: number
 }
 
 /**
@@ -235,6 +282,7 @@ export const DIFFICULTY_PRESETS: Record<Difficulty, DifficultyPreset> = {
     maxHostilesPerSector: 2,
     startingEnergy: 1400,
     startingTorpedoes: 14,
+    scoreMultiplier: 0.75,
   },
   normal: {
     hostileDensity: HOSTILE_DENSITY,
@@ -249,6 +297,7 @@ export const DIFFICULTY_PRESETS: Record<Difficulty, DifficultyPreset> = {
     maxHostilesPerSector: MAX_HOSTILES_PER_SECTOR,
     startingEnergy: STARTING_ENERGY,
     startingTorpedoes: STARTING_TORPEDOES,
+    scoreMultiplier: 1,
   },
   hard: {
     hostileDensity: 0.18,
@@ -263,5 +312,13 @@ export const DIFFICULTY_PRESETS: Record<Difficulty, DifficultyPreset> = {
     maxHostilesPerSector: 3,
     startingEnergy: 900,
     startingTorpedoes: 8,
+    scoreMultiplier: 1.5,
   },
 }
+
+// ---------------------------------------------------------------------------
+// Leaderboard (game/leaderboardStorage.ts, game/Leaderboard.tsx)
+// ---------------------------------------------------------------------------
+
+/** How many entries the local leaderboard keeps - a lower-ranked new score still saves, it just won't be shown afterward. */
+export const LEADERBOARD_MAX_ENTRIES = 10

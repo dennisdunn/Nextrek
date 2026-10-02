@@ -1,4 +1,11 @@
-import { HOSTILE_QUOTA, STARDATE_BUDGET, STARDATE_PER_NORMAL_MOVE, STARDATE_PER_WARP_MOVE, STARTING_STARDATE } from '../balance'
+import {
+  HOSTILE_QUOTA,
+  MISSION_SCORE_MAX,
+  STARDATE_BUDGET,
+  STARDATE_PER_NORMAL_MOVE,
+  STARDATE_PER_WARP_MOVE,
+  STARTING_STARDATE,
+} from '../balance'
 
 export { HOSTILE_QUOTA, STARDATE_BUDGET, STARDATE_PER_NORMAL_MOVE, STARDATE_PER_WARP_MOVE, STARTING_STARDATE }
 
@@ -54,8 +61,8 @@ export function stardateRemaining(stardate: number, config: MissionConfig = DEFA
   return Math.max(0, missionDeadline(config) - stardate)
 }
 
-/** Which of the two ways a defeat happened - drives which message the end screen shows. */
-export type DefeatReason = 'timeout' | 'stranded'
+/** Which way a defeat happened - drives which message the end screen shows. */
+export type DefeatReason = 'timeout' | 'stranded' | 'destroyed'
 
 /**
  * True once no combination of reserve, shields, and phasers can cover even
@@ -67,4 +74,52 @@ export type DefeatReason = 'timeout' | 'stranded'
  */
 export function isStranded(totalEnergy: number, cheapestMoveCost: number): boolean {
   return totalEnergy < cheapestMoveCost
+}
+
+/** What's left of each spendable resource at the moment a mission ends - see missionScore. */
+export interface MissionResources {
+  /** Reserve + shields + phasers combined - see isStranded's note on why the combined total is what matters. */
+  energyRemaining: number
+  startingEnergy: number
+  torpedoesRemaining: number
+  startingTorpedoes: number
+}
+
+function clamp01(fraction: number): number {
+  return Math.max(0, Math.min(1, fraction))
+}
+
+/**
+ * A post-mission performance readout for a victory (see EndScreen.tsx) -
+ * not a gameplay mechanic itself, unlike everything else in this file, so
+ * it takes its inputs flattened rather than a MissionConfig. Equally
+ * weighted across the three things a player was told mattered: hostiles
+ * destroyed relative to quota (uncapped - going past quota costs real
+ * time and resources, so it isn't a free way to inflate this), time spent
+ * relative to budget, and energy/torpedoes still in hand relative to what
+ * the mission started with (each clamped to [0, 1] - unlike the hostile
+ * count, a budget can't meaningfully be "under-spent" past 100%).
+ *
+ * `scoreMultiplier` (the active difficulty's own, from balance.ts's
+ * DIFFICULTY_PRESETS - defaults to 1, Normal's own multiplier) is applied
+ * last, over the whole average - the same relative performance (e.g. a
+ * clean win right at quota) reads higher on Hard than on Easy, rewarding
+ * the harder mission rather than just the raw play.
+ */
+export function missionScore(
+  hostilesDestroyed: number,
+  hostileQuota: number,
+  stardate: number,
+  stardateBudget: number,
+  resources: MissionResources,
+  scoreMultiplier = 1,
+): number {
+  const hostileFactor = hostileQuota > 0 ? hostilesDestroyed / hostileQuota : 1
+  const stardateUsed = stardate - STARTING_STARDATE
+  const timeFactor = clamp01(1 - stardateUsed / stardateBudget)
+  const energyFactor = clamp01(resources.energyRemaining / resources.startingEnergy)
+  const torpedoFactor =
+    resources.startingTorpedoes > 0 ? clamp01(resources.torpedoesRemaining / resources.startingTorpedoes) : 1
+  const resourceFactor = (energyFactor + torpedoFactor) / 2
+  return Math.round(((hostileFactor + timeFactor + resourceFactor) / 3) * MISSION_SCORE_MAX * scoreMultiplier)
 }

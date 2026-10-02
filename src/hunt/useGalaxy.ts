@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { COMMS_LOG_LIMIT, DIFFICULTY_PRESETS, type Difficulty } from '../balance'
+import { BARRIER_POWERUP_COOLDOWN_STARDATES, COMMS_LOG_LIMIT, DIFFICULTY_PRESETS, type Difficulty } from '../balance'
 import { barrier } from '../graph/anomalies'
 import type { NodeId } from '../graph/UndoGraph'
 import { pickGateDestination } from './anomalyEffects'
@@ -39,11 +39,28 @@ export interface HuntState {
   torpedoes: number
   /** Hostiles destroyed so far this mission, toward mission.ts's HOSTILE_QUOTA. */
   hostilesDestroyed: number
+  /** Set once a kill-phase encounter actually ends in the player's hull reaching 0 - a third, sticky way to lose (see resolveEncounter). */
+  shipDestroyed: boolean
   visited: Set<NodeId>
   /** Sectors a long-range scan has revealed - what the strategic map shows, beyond what's been visited. */
   scanned: Set<NodeId>
   /** Sectors a subspace scan has checked for an anomaly (whether or not it found one). */
   scannedAnomalies: Set<NodeId>
+  /**
+   * Barrier sectors whose power-up (see anomalySeeding.ts's AnomalyPlacement)
+   * has been claimed, mapped to the stardate it was last drawn - tracked
+   * here in React state, deliberately not on the graph node itself. A node
+   * mutation pushes onto the same shared undo stack toggleWarp/
+   * disengageWarp pop from (see UndoGraph.ts), and a barrier is exactly the
+   * kind of sector you might still be under warp when you first enter (see
+   * warpEnteredBarrier) - disengaging warp afterward would pop whatever was
+   * pushed most recently, which could be this instead of the warp edge-set.
+   * Keeping it out of the graph entirely sidesteps that risk rather than
+   * relying on call-order luck. The timestamp lets a cache recharge after
+   * BARRIER_POWERUP_COOLDOWN_STARDATES rather than being a one-shot pickup -
+   * see moveTo.
+   */
+  collectedPowerUps: Map<NodeId, number>
   /**
    * The barrier sector the ship currently occupies, if it got in via warp -
    * null otherwise. barrier() only strips edges from whichever edge set is
@@ -109,9 +126,11 @@ export function useGalaxy(options?: UseGalaxyOptions) {
     subsystems: fullSubsystemHealth(),
     torpedoes: preset.startingTorpedoes,
     hostilesDestroyed: 0,
+    shipDestroyed: false,
     visited: new Set([home]),
     scanned: new Set(),
     scannedAnomalies: new Set(),
+    collectedPowerUps: new Map(),
     warpEnteredBarrier: null,
     log: ['Sensors online. Awaiting orders.'],
   })
@@ -128,6 +147,13 @@ export function useGalaxy(options?: UseGalaxyOptions) {
   // onResolved prop it was handed changes identity mid-fight.
   const stateRef = useRef(state)
   stateRef.current = state
+
+  // The graph's undo-depth from just before the current warp session
+  // engaged (null while not engaged) - see galaxy.ts's engageWarp/
+  // disengageWarp. Needs to survive between the toggleWarp call that
+  // engages and the later one that disengages, without itself triggering a
+  // re-render, so a ref rather than HuntState.
+  const warpCheckpointRef = useRef<number | null>(null)
 
   const currentSector = galaxy.getNode(state.position)
   const neighbors = galaxy.neighbors(state.position)
@@ -147,9 +173,24 @@ export function useGalaxy(options?: UseGalaxyOptions) {
   const totalEnergy = state.energy.reserve + state.energy.shields + state.energy.phasers
   const cheapestMoveCost = MOVE_COST_NORMAL * degradedCostMultiplier(state.subsystems.impulseEngines)
   const stranded = isStranded(totalEnergy, cheapestMoveCost)
-  const status = timeQuotaStatus !== 'active' ? timeQuotaStatus : stranded ? 'defeat' : 'active'
+  // Ship-destroyed takes priority over the other two: it's a discrete event
+  // that already happened (see resolveEncounter), not a numeric threshold
+  // that could in principle resolve either way depending on when it's read.
+  const status = state.shipDestroyed
+    ? 'defeat'
+    : timeQuotaStatus !== 'active'
+      ? timeQuotaStatus
+      : stranded
+        ? 'defeat'
+        : 'active'
   const defeatReason: DefeatReason | null =
-    status !== 'defeat' ? null : timeQuotaStatus === 'defeat' ? 'timeout' : 'stranded'
+    status !== 'defeat'
+      ? null
+      : state.shipDestroyed
+        ? 'destroyed'
+        : timeQuotaStatus === 'defeat'
+          ? 'timeout'
+          : 'stranded'
 
   const moveTo = useCallback(
     (target: NodeId): NodeId | false => {
@@ -228,6 +269,26 @@ export function useGalaxy(options?: UseGalaxyOptions) {
       // sector-entry effect (hostile, barrier, gate, conduit) - there's no
       // reason to gate a no-cost, no-choice restoration behind a command.
       const docked = Boolean(landedSector?.starbase)
+      // A barrier's power-up (if it has one) is also unconditional on entry,
+      // same as docking - and mutually exclusive with it, since seeding
+      // never puts a starbase and an anomaly on the same sector. Collection
+      // is tracked here in HuntState rather than via galaxy.setNode: a node
+      // mutation pushes onto the same shared undo stack toggleWarp/
+      // disengageWarp pop from (see UndoGraph.ts), and a barrier is exactly
+      // the kind of sector you might still be under warp when you first
+      // enter (see warpEnteredBarrier above) - a later disengageWarp() could
+      // then pop this mutation instead of the warp edge-set. Keeping
+      // collection out of the graph entirely sidesteps that risk. It's a
+      // rechargeable draw, not a one-shot pickup - but only reachable at all
+      // a second time if this barrier was entered via warp (which heals);
+      // an impulse entry seals the only route in for good, so the cooldown
+      // below never gets a chance to matter there.
+      const nextStardate = state.stardate + stardateCost(state.warpEngaged)
+      const rawPowerUp = landedSector?.anomaly?.kind === 'barrier' ? landedSector.anomaly.powerUp : undefined
+      const lastCollectedAt = state.collectedPowerUps.get(landedAt)
+      const onCooldown =
+        lastCollectedAt !== undefined && nextStardate - lastCollectedAt < BARRIER_POWERUP_COOLDOWN_STARDATES
+      const powerUp = rawPowerUp && !onCooldown ? rawPowerUp : undefined
 
       setState((s) => ({
         ...s,
@@ -235,17 +296,29 @@ export function useGalaxy(options?: UseGalaxyOptions) {
         stardate: s.stardate + stardateCost(s.warpEngaged),
         energy: docked
           ? { reserve: preset.startingEnergy, shields: 0, phasers: 0 }
-          : { ...s.energy, reserve: s.energy.reserve - cost },
+          : powerUp === 'energy'
+            ? { ...s.energy, reserve: preset.startingEnergy }
+            : { ...s.energy, reserve: s.energy.reserve - cost },
         subsystems: docked ? fullSubsystemHealth() : s.subsystems,
-        torpedoes: docked ? preset.startingTorpedoes : s.torpedoes,
+        torpedoes: docked || powerUp === 'torpedoes' ? preset.startingTorpedoes : s.torpedoes,
         visited: new Set(s.visited).add(target).add(landedAt),
         warpEnteredBarrier: nextWarpEnteredBarrier,
+        collectedPowerUps: powerUp
+          ? new Map(s.collectedPowerUps).set(landedAt, nextStardate)
+          : s.collectedPowerUps,
       }))
       appendLog(message)
       if (docked) {
         appendLog(
           `Docked at ${landedSector!.name} starbase - shields, phasers, and reserves fully restored; all systems repaired; torpedo bay restocked.`,
         )
+      }
+      if (powerUp === 'energy') {
+        appendLog('Energy cache found - reserves fully replenished.')
+      } else if (powerUp === 'torpedoes') {
+        appendLog('Torpedo cache found - torpedo bay restocked.')
+      } else if (rawPowerUp && onCooldown) {
+        appendLog("The cache here hasn't recharged yet.")
       }
       if (leavingWarpEnteredBarrier) {
         const departedName = galaxy.getNode(departedFrom)?.name ?? departedFrom
@@ -266,6 +339,8 @@ export function useGalaxy(options?: UseGalaxyOptions) {
       state.energy.reserve,
       state.warpEnteredBarrier,
       state.subsystems.impulseEngines,
+      state.collectedPowerUps,
+      state.stardate,
       home,
       appendLog,
       preset,
@@ -274,7 +349,11 @@ export function useGalaxy(options?: UseGalaxyOptions) {
 
   const toggleWarp = useCallback(() => {
     if (state.warpEngaged) {
-      disengageWarp(galaxy)
+      // warpCheckpointRef is only ever null while !state.warpEngaged (set in
+      // the branch below, cleared here) - the ?? 0 fallback is defensive,
+      // not an expected path.
+      disengageWarp(galaxy, warpCheckpointRef.current ?? 0)
+      warpCheckpointRef.current = null
       setState((s) => ({ ...s, warpEngaged: false }))
       appendLog('Warp drive disengaged.')
     } else {
@@ -287,7 +366,7 @@ export function useGalaxy(options?: UseGalaxyOptions) {
         appendLog('Insufficient energy to engage warp drive.')
         return
       }
-      engageWarp(galaxy)
+      warpCheckpointRef.current = engageWarp(galaxy)
       setState((s) => ({
         ...s,
         warpEngaged: true,
@@ -298,16 +377,54 @@ export function useGalaxy(options?: UseGalaxyOptions) {
     bump()
   }, [galaxy, state.warpEngaged, state.energy.reserve, state.subsystems.warpDrive, appendLog, bump])
 
+  /**
+   * `inCombat` (true while an encounter is active - see GameShell's
+   * `encounter` state) makes a *decrease* pay the same REFUND_EFFICIENCY
+   * rate that standing shields/phasers down at the end of an encounter
+   * already does, instead of the normal 1:1 reserve credit. Without this,
+   * dragging the Engineering slider down right before a fight resolves
+   * would let the player reclaim mid-fight energy at full value - the
+   * exact cost resolveEncounter's own refund is supposed to impose on
+   * whatever's left unspent. Outside combat there's no such fight to time
+   * against, so a decrease is still a plain, lossless reallocation.
+   */
   const allocateEnergy = useCallback(
-    (subsystem: Subsystem, targetLevel: number) => {
+    (subsystem: Subsystem, targetLevel: number, inCombat = false) => {
       setState((s) => {
         const health = subsystem === 'shields' ? s.subsystems.shieldGenerator : s.subsystems.phaserArray
         const maxLevel = 100 * systemEfficiency(health)
+        const current = s.energy[subsystem]
+        const available = s.energy.reserve + current
+        const next = Math.max(0, Math.min(targetLevel, available, maxLevel))
+        if (inCombat && next < current) {
+          const decrease = current - next
+          return {
+            ...s,
+            energy: { ...s.energy, [subsystem]: next, reserve: s.energy.reserve + decrease * REFUND_EFFICIENCY },
+          }
+        }
         return { ...s, energy: allocate(s.energy, subsystem, targetLevel, maxLevel) }
       })
     },
     [],
   )
+
+  /**
+   * The keyboard shortcuts' version of allocateEnergy (see ControlsPanel.tsx's
+   * H/P bindings) - adds to whatever the subsystem is currently allocated
+   * instead of setting an absolute target. Reads the current level from the
+   * functional setState updater rather than a closed-over `state.energy`, so
+   * back-to-back presses each add on top of the other's result instead of
+   * racing against a stale value. Increment-only, so it never needs the
+   * lossy-decrease handling above.
+   */
+  const adjustEnergy = useCallback((subsystem: Subsystem, amount: number) => {
+    setState((s) => {
+      const health = subsystem === 'shields' ? s.subsystems.shieldGenerator : s.subsystems.phaserArray
+      const maxLevel = 100 * systemEfficiency(health)
+      return { ...s, energy: allocate(s.energy, subsystem, s.energy[subsystem] + amount, maxLevel) }
+    })
+  }, [])
 
   /**
    * Fold a finished (or fled) encounter back into ship state: refund
@@ -323,6 +440,8 @@ export function useGalaxy(options?: UseGalaxyOptions) {
       leftoverPhaserEnergy: number,
       torpedoesRemaining: number,
       hostilesKilled: number,
+      /** True only when this encounter ended with the player's hull reaching 0 - never for a fled or won fight. */
+      shipDestroyed = false,
     ) => {
       const current = stateRef.current
       const { subsystems, damagedSystem } = applySubsystemWear(current.subsystems, hullDamageTaken)
@@ -345,7 +464,13 @@ export function useGalaxy(options?: UseGalaxyOptions) {
         energy,
         torpedoes: torpedoesRemaining,
         hostilesDestroyed: s.hostilesDestroyed + hostilesKilled,
+        shipDestroyed: s.shipDestroyed || shipDestroyed,
       }))
+
+      if (shipDestroyed) {
+        appendLog('Hull breach - the ship is lost.')
+        return
+      }
 
       const recovered = Math.round(Math.max(0, leftoverShieldEnergy + leftoverPhaserEnergy) * REFUND_EFFICIENCY)
       appendLog(
@@ -423,6 +548,7 @@ export function useGalaxy(options?: UseGalaxyOptions) {
     moveTo,
     toggleWarp,
     allocateEnergy,
+    adjustEnergy,
     resolveEncounter,
     longRangeScan,
     subspaceScan,

@@ -10,10 +10,14 @@ Hunt the Wumpus meets Asteroids, loosely based on 1971 BASIC *Star Trek*. Explor
 
 Nextrek alternates between two phases:
 
-- **Hunt phase** — a turn-based strategic layer. The galaxy is a polar grid of sectors arranged in rings around a galactic core. You move sector to sector by impulse or warp, spend energy on long-range and subspace scans to reveal what's nearby, and manage shield/phaser power allocation. Subspace anomalies (barriers, gates, conduits) complicate navigation, and starbases fully restore your ship.
+- **Hunt phase** — a turn-based strategic layer. The galaxy is a polar grid of sectors arranged in rings around a galactic core. You move sector to sector by impulse or warp, spend energy on long-range and subspace scans to reveal what's nearby, and manage shield/phaser power allocation. Subspace anomalies (barriers, gates, conduits) complicate navigation, and starbases fully restore your ship. Some barriers hide a rechargeable energy or torpedo cache as a consolation prize - but you won't know it's there until you've already paid the barrier's one-way cost to find out.
 - **Kill phase** — a real-time, top-down arena in the style of *Asteroids*, opened automatically the moment you move into a sector holding hostiles. Fly your ship, fire phasers, and lock on with homing torpedoes while managing the same shield/phaser energy pools from the hunt phase. Some encounters also have a star to avoid.
 
 **Objective:** destroy enough hostiles before the mission clock runs out. **You lose** if the clock runs out first, if your ship is destroyed in combat, or if you become stranded — too little energy left to make even the cheapest possible move.
+
+**Score:** a win is rated on how efficiently you pulled it off, not just that you did — hostiles destroyed relative to quota (killing more than required keeps adding to the score, it's not free), time spent relative to the mission clock, and energy/torpedoes still in reserve at the end all count equally. A clean, unhurried, resource-light win at exactly quota scores around 1000 on Normal; overkill pushes it higher. Harder difficulties score more for the same performance — roughly ×0.75 on Easy, ×1 on Normal, ×1.5 on Hard, so all three share one leaderboard rather than needing separate ones.
+
+**Leaderboard:** every win's score can be saved with a name to a local leaderboard, stored entirely in your browser (no account, no server) - shown on the start screen and at the end of every mission.
 
 Every mission starts in a random, clear sector, and ship subsystems (warp drive, shields, phasers, impulse engines, sensors, torpedo tubes) can take lasting damage in combat, degrading what they do until you reach a starbase for repairs.
 
@@ -26,7 +30,7 @@ Every mission starts in a random, clear sector, and ship subsystems (warp drive,
 | Engage warp | Controls panel → **Warp**, or press **W** |
 | Return to impulse | Controls panel → **Impulse**, or press **I** |
 | Move | Sciences panel → click a reachable sector on the map |
-| Allocate energy | Engineering panel → Shields / Phasers sliders |
+| Allocate energy | Engineering panel → Shields / Phasers sliders, or **H** (shields) / **P** (phasers) to add |
 | Steer / thrust (in combat) | Arrow keys or **WASD** |
 | Fire phasers (in combat) | **Space** |
 | Fire a homing torpedo (in combat) | **Enter** or **T** |
