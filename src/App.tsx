@@ -19,7 +19,7 @@ function App() {
   }, [])
 
   return (
-    <div id="app">
+    <div id="app" className="pk-screen">
       {difficulty ? (
         <GameShell key={gameKey} difficulty={difficulty} onNewGame={handleNewGame} />
       ) : (

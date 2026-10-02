@@ -16,7 +16,7 @@ export function EngineeringPanel({ energy, subsystems, torpedoes, startingEnergy
   const reservePct = Math.max(0, Math.min(100, (energy.reserve / startingEnergy) * 100))
 
   return (
-    <Panel title="Engineering" accent="engineering">
+    <Panel title="Engineering" accent="engineering" mirror>
       <div className="stat-grid">
         <div className="stat">
           <span className="stat__label">Reserve power</span>

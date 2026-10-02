@@ -1,32 +1,88 @@
+/*
+ * Layer order: nextrek.base first, so Protokuda's own rules (pk-button,
+ * form controls, frames) win over the generic element defaults below.
+ * Everything in App.css stays unlayered and so beats all of them.
+ */
+@layer nextrek.base, protokuda.base, protokuda.theme, protokuda.state;
+
+/* Bundled from npm rather than linked from a CDN, so the service worker precaches both (see vite.config.ts). */
+@import '@fontsource-variable/antonio';
+@import 'protokuda/dist/protokuda.css';
+
+/*
+ * The app's own color tokens, mapped onto the Atomic theme (index.html puts
+ * pk-theme-atomic on <html>). Station-specific colors live in App.css.
+ */
 :root {
-  --text: #c7d0e0;
-  --text-h: #eef3ff;
-  --bg: #0a0e17;
-  --panel-bg: #10151f;
-  --border: #253044;
-  --accent: #6fe3ff;
-  --accent-bg: rgba(111, 227, 255, 0.12);
-  --danger: #ff6b6b;
-  --danger-bg: rgba(255, 107, 107, 0.12);
+  --pk-sans-font-family: 'Antonio Variable', 'Antonio', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --text: var(--pk-text);
+  --text-h: var(--pk-primary-light);
+  --label: var(--pk-blue-bell);
+  --bg: var(--pk-backdrop);
+  --panel-bg: var(--pk-backdrop-light);
+  --border: var(--pk-primary-dark);
+  --accent: var(--pk-primary);
+  --accent-bg: color-mix(in srgb, var(--pk-primary) 12%, transparent);
+  --danger: var(--pk-red-alert);
+  --danger-bg: color-mix(in srgb, var(--pk-red-alert) 15%, transparent);
+  --warn: var(--pk-golden-tanoi);
+  --warn-bg: color-mix(in srgb, var(--pk-golden-tanoi) 12%, transparent);
+  --ok: var(--pk-accent-light);
+  --ok-bg: color-mix(in srgb, var(--pk-accent-light) 12%, transparent);
+  --anomaly: var(--pk-lilac);
+  --map-tint: var(--pk-anakiwa);
 
-  font: 16px/145% var(--sans);
-  color-scheme: dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --sans: var(--pk-sans-font-family);
+  --mono: var(--pk-mono-font-family);
 }
 
-html,
-body {
-  margin: 0;
-  height: 100%;
-  overflow: hidden;
+@layer nextrek.base {
+  :root {
+    font: 16px/145% var(--sans);
+    color-scheme: dark;
+    color: var(--text);
+    background: var(--bg);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html,
+  body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  h1,
+  h2,
+  h3 {
+    color: var(--text-h);
+    font-weight: 500;
+    margin: 0 0 8px;
+  }
+
+  button {
+    font: inherit;
+    color: var(--text-h);
+    background: var(--accent-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  button:hover {
+    border-color: var(--accent);
+  }
+
+  button:focus-visible {
+    outline: 2px solid var(--pk-accent);
+    outline-offset: 2px;
+  }
 }
 
 #root {
@@ -35,32 +91,4 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-h1,
-h2,
-h3 {
-  color: var(--text-h);
-  font-weight: 500;
-  margin: 0 0 8px;
-}
-
-button {
-  font: inherit;
-  color: var(--text-h);
-  background: var(--accent-bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px 14px;
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-
-button:hover {
-  border-color: var(--accent);
-}
-
-button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }

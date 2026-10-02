@@ -3,61 +3,43 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  /* .pk-screen (for Protokuda's form-control styling) brings its own grid padding/gap - .hunt-phase and the start/end screens pad themselves. */
+  padding: 0;
+  gap: 0;
 }
 
 .hunt-phase {
   display: flex;
   flex: 1;
-  gap: 20px;
-  padding: 20px;
+  /* Wide enough that each frame's protruding nameplate clears the frame above it. */
+  gap: 24px;
+  padding: 24px 20px 20px;
   align-items: stretch;
   min-height: 0;
   overflow: hidden;
 }
 
-/*
- * Deliberately no flex-wrap here: `flex-wrap: wrap` combined with
- * `align-items: stretch` and the nested flex:1 chain below it (panel body
- * -> galaxy-map) made the browser size .panel--sciences from its content
- * instead of the container - the map rendered at a fixed ~750-900px
- * height regardless of viewport, silently overflowing .hunt-phase's
- * overflow:hidden and clipping the scan buttons and comms log beneath the
- * fold. A media query switches to a column layout on narrow screens
- * instead, which doesn't hit the same interaction.
- */
-@media (max-width: 860px) {
-  .hunt-phase {
-    flex-direction: column;
-    overflow-y: auto;
-  }
-
-  /* flex-basis tracks the main axis - a fixed 104px would flatten the stacked buttons instead of sizing to their content. */
-  .controls-panel {
-    flex: 0 0 auto;
-  }
-}
-
 .hunt-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
   flex: 1 1 300px;
   min-width: 280px;
   min-height: 0;
+  /* Room for the first frame's nameplate, which sits centered on its top bar and so pokes above the frame's own box. */
+  padding-top: 0.75rem;
   overflow-y: hidden;
 }
 
 /*
- * Controls, Status, and Engineering are all a fixed, content-sized height -
- * only Comms is expected to grow past the fold, so it's the one panel that
- * claims the sidebar's leftover space and scrolls internally (see .log),
- * rather than the whole sidebar needing to scroll as a unit.
+ * Status and Engineering are a fixed, content-sized height - only Comms is
+ * expected to grow past the fold, so it's the one panel that claims the
+ * sidebar's leftover space and scrolls internally (see .log), rather than
+ * the whole sidebar needing to scroll as a unit.
  */
 .panel--comms {
   flex: 1;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
 }
 
 .panel--comms .panel__body {
@@ -73,46 +55,42 @@
   max-height: none;
 }
 
+/*
+ * Every station is a Protokuda frame (Panel.tsx). No overflow: hidden on
+ * the frame itself - its nameplate and sidebar buttons are positioned over
+ * its border, outside the padding box, and would be clipped.
+ */
 .panel {
-  background: var(--panel-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
 }
 
-.panel__title {
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-h);
+.panel > .pk-title {
+  font-weight: 600;
 }
 
-.panel--status .panel__title {
-  border-left: 4px solid var(--accent);
+.panel > .panel__body {
+  margin-top: 1.25rem;
 }
 
-.panel--comms .panel__title {
-  border-left: 4px solid #ffd166;
+/* A partial frame has no top bar, so its title sits inside the frame - leave room under it. */
+.panel.pk-partial > .panel__body {
+  margin-top: 2.25rem;
 }
 
-.panel--engineering .panel__title {
-  border-left: 4px solid #c084fc;
+/* Each sidebar station gets its own color from the Atomic palette; Sciences keeps the theme's primary (and so red-alerts with it). */
+.panel--status {
+  --pk-primary: var(--pk-primary-light);
 }
 
-.panel--sciences .panel__title {
-  border-left: 4px solid #6fffb0;
+.panel--engineering {
+  --pk-primary: var(--pk-secondary-light);
+  --pk-on-primary: var(--pk-white);
 }
 
-.panel--controls .panel__title {
-  border-left: 4px solid #9aa5b8;
-}
-
-.panel__body {
-  padding: 16px;
+.panel--comms {
+  --pk-primary: var(--pk-accent);
 }
 
 .main-station {
@@ -121,17 +99,16 @@
   flex-direction: column;
   gap: 8px;
   min-height: 0;
+  padding-top: 0.75rem;
 }
 
 .panel--sciences {
   flex: 1;
-  display: flex;
-  flex-direction: column;
   min-height: 0;
-  /* Containing block for .touch-controls below - keeps the touch overlay
-     scoped to the Tactical panel's own box instead of the full viewport,
-     so it doesn't drift over the sidebar's comms log next to it. */
-  position: relative;
+  /* Containing block for .touch-controls below (pk-frame already sets
+     position: relative) - keeps the touch overlay scoped to the Tactical
+     panel's own box instead of the full viewport, so it doesn't drift over
+     the sidebar's comms log next to it. */
 }
 
 .panel--sciences .panel__body {
@@ -142,122 +119,121 @@
 }
 
 /*
- * The Sciences/Tactical and Status/Damage-control station slots put their
- * tab bar directly in the header instead of a separate row above the panel -
- * the plain title stays in the DOM (for a11y/consistency) but is hidden,
- * and .header-toggle takes its place visually.
+ * Deliberately no flex-wrap here: `flex-wrap: wrap` combined with
+ * `align-items: stretch` and the nested flex:1 chain below it (panel body
+ * -> galaxy-map) made the browser size .panel--sciences from its content
+ * instead of the container - the map rendered at a fixed ~750-900px
+ * height regardless of viewport, silently overflowing .hunt-phase's
+ * overflow:hidden and clipping the scan buttons and comms log beneath the
+ * fold. A media query switches to a column layout on narrow screens
+ * instead, which doesn't hit the same interaction. It sits after the
+ * layout rules it overrides (down to the Sciences panel) - same
+ * specificity, so source order decides.
  */
-.panel--has-toggle > .panel__title {
-  display: none;
+@media (max-width: 860px) {
+  .hunt-phase {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  /*
+   * In a column, .hunt-phase scrolls as a whole - so its children must
+   * keep their natural height rather than shrinking to fit the viewport
+   * (the wide layout's flex-basis would otherwise become a fixed height,
+   * and the sidebar's overflow: hidden clipped Engineering and Comms).
+   * The main station has no content height of its own (the map fills
+   * whatever it's given), so it gets an explicit one.
+   */
+  .main-station {
+    flex: none;
+    height: 70svh;
+    min-height: 420px;
+  }
+
+  .hunt-sidebar {
+    flex: none;
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .panel--comms,
+  .panel--comms .panel__body,
+  .panel--comms .log {
+    flex: none;
+  }
+
+  .panel--comms .log {
+    max-height: 220px;
+  }
 }
 
+/*
+ * The Sciences/Tactical and Status/Damage-control station slots put their
+ * tab bar in the frame's nameplate instead of a plain title.
+ */
 .header-toggle {
   display: flex;
+  gap: 0.5em;
 }
 
 .header-toggle button {
-  flex: 1;
   border: none;
   border-radius: 0;
+  padding: 0;
   background: transparent;
-  color: var(--text);
-  opacity: 0.55;
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding: 8px 16px;
-  border-bottom: 3px solid transparent;
+  color: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  opacity: 0.5;
   cursor: pointer;
+}
+
+.header-toggle button:hover {
+  opacity: 0.8;
 }
 
 .header-toggle button.active {
   opacity: 1;
-  color: var(--text-h);
-  background: var(--panel-bg);
 }
 
-.header-toggle--sciences button.active {
-  border-bottom-color: #6fffb0;
-}
-
-.header-toggle--sciences button.tab-tactical.active {
-  border-bottom-color: var(--danger);
-}
-
-.header-toggle--status button.active {
-  border-bottom-color: var(--accent);
-}
-
-.header-toggle--status button.tab-damage.active {
-  border-bottom-color: #c084fc;
+.header-toggle button + button::before {
+  content: '/';
+  margin-right: 0.5em;
+  opacity: 0.5;
 }
 
 /*
- * Controls: every player-initiated action (scan/warp), grouped in one
- * left-hand column instead of scattered across the panels they act on -
- * each button still colored/bordered to match its own station.
+ * Controls: every player-initiated action (scan/warp), as pk-buttons in the
+ * Sciences frame's sidebar - each colored by the station it belongs to
+ * (Sciences blue, Engineering lavender to match its frame).
  */
-.controls-panel {
-  flex: 0 0 104px;
-  display: flex;
-  flex-direction: column;
+.panel--sciences > .pk-items > .pk-button {
+  font-weight: 600;
 }
 
-.controls-panel .panel__body {
-  /* The generic .panel__body's 16px horizontal padding barely leaves room
-     for "Subspace" once the button's own border/padding are subtracted from
-     a 104px-wide panel - narrowed here instead of widening the panel itself. */
-  padding-left: 10px;
-  padding-right: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  flex: 1;
+.pk-button.btn-sci {
+  --pk-button-bg: var(--pk-anakiwa);
+  --pk-button-fg: var(--pk-black);
+  --pk-button-hover-bg: var(--pk-golden-tanoi);
+  --pk-button-hover-fg: var(--pk-black);
 }
 
-.controls-panel button {
-  width: 100%;
-  padding: 12px 8px;
-  font-size: 13px;
-  border-left-width: 4px;
-  border-left-style: solid;
+.pk-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-.controls-panel .btn-sci {
-  border-left-color: #6fffb0;
-  background: rgba(111, 255, 176, 0.08);
-}
-
-.controls-panel .btn-sci:hover {
-  background: rgba(111, 255, 176, 0.16);
-}
-
-.controls-panel .btn-eng {
-  border-left-color: #c084fc;
-  background: rgba(192, 132, 252, 0.08);
-}
-
-.controls-panel .btn-eng:hover {
-  background: rgba(192, 132, 252, 0.16);
-}
-
-.controls-divider {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 4px 0;
-}
-
-.controls-spacer {
-  flex: 1;
+.pk-button:disabled:hover {
+  color: var(--pk-button-fg);
+  background-color: var(--pk-button-bg);
 }
 
 .galaxy-map {
   flex: 1;
   min-height: 0;
   width: 100%;
-  background: radial-gradient(circle at center, #131a29 0%, var(--bg) 75%);
+  background: radial-gradient(circle at center, color-mix(in srgb, var(--pk-secondary-dark) 45%, var(--bg)) 0%, var(--bg) 75%);
   border-radius: 6px;
   border: 1px solid var(--border);
   overflow: hidden;
@@ -270,7 +246,7 @@
 }
 
 .sector {
-  fill: rgba(111, 227, 255, 0.04);
+  fill: color-mix(in srgb, var(--map-tint) 4%, transparent);
   stroke: var(--border);
   stroke-width: 1;
   cursor: default;
@@ -283,16 +259,16 @@
 }
 
 .sector--known {
-  fill: rgba(111, 227, 255, 0.09);
+  fill: color-mix(in srgb, var(--map-tint) 9%, transparent);
 }
 
 .sector--reachable {
-  fill: rgba(111, 227, 255, 0.14);
+  fill: color-mix(in srgb, var(--map-tint) 14%, transparent);
   cursor: pointer;
 }
 
 .sector--reachable:hover {
-  fill: rgba(111, 227, 255, 0.28);
+  fill: color-mix(in srgb, var(--map-tint) 28%, transparent);
 }
 
 .sector--here {
@@ -320,13 +296,13 @@
  * for it at all.
  */
 .sector--anomaly {
-  fill: rgba(232, 121, 249, 0.35);
-  stroke: #e879f9;
+  fill: color-mix(in srgb, var(--anomaly) 35%, transparent);
+  stroke: var(--anomaly);
   stroke-width: 2.5;
 }
 
 .sector--hostile.sector--anomaly {
-  fill: rgba(232, 121, 249, 0.35);
+  fill: color-mix(in srgb, var(--anomaly) 35%, transparent);
   stroke: var(--danger);
   stroke-width: 2.5;
 }
@@ -344,31 +320,31 @@
 
 .sector-marker--base {
   fill: none;
-  stroke: #4ade80;
+  stroke: var(--ok);
   stroke-width: 1.5;
 }
 
 .sector-marker--base circle {
-  fill: rgba(74, 222, 128, 0.25);
+  fill: color-mix(in srgb, var(--ok) 25%, transparent);
 }
 
 /*
- * Gate and conduit share the wedge's own magenta - color says "anomaly",
+ * Gate and conduit share the wedge's own lilac - color says "anomaly",
  * shape says which kind. Barrier has no glyph of its own.
  */
 .sector-marker--gate {
   fill: none;
-  stroke: #e879f9;
+  stroke: var(--anomaly);
   stroke-width: 1.5;
 }
 
 .sector-marker--gate .sector-marker__core {
-  fill: #e879f9;
+  fill: var(--anomaly);
 }
 
 .sector-marker--conduit {
-  fill: rgba(232, 121, 249, 0.25);
-  stroke: #e879f9;
+  fill: color-mix(in srgb, var(--anomaly) 25%, transparent);
+  stroke: var(--anomaly);
   stroke-width: 1.5;
 }
 
@@ -385,7 +361,7 @@
 
 /* Drawn on top of the wedges once both ends of a conduit are identified. */
 .conduit-link {
-  stroke: #e879f9;
+  stroke: var(--anomaly);
   stroke-width: 2;
   stroke-dasharray: 6 4;
   opacity: 0.6;
@@ -402,8 +378,11 @@
 }
 
 .readout dt {
-  color: var(--text);
-  opacity: 0.7;
+  font-family: var(--sans);
+  text-transform: uppercase;
+  letter-spacing: var(--pk-letter-spacing);
+  color: var(--label);
+  text-align: left;
 }
 
 .readout dd {
@@ -424,9 +403,11 @@
 
 .stat__label {
   display: block;
-  color: var(--text);
-  opacity: 0.7;
-  font-size: 12px;
+  font-family: var(--sans);
+  text-transform: uppercase;
+  letter-spacing: var(--pk-letter-spacing);
+  color: var(--label);
+  font-size: 13px;
 }
 
 .stat__value {
@@ -439,8 +420,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-family: var(--mono);
-  font-size: 13px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: var(--pk-letter-spacing);
+  color: var(--label);
   margin-bottom: 4px;
 }
 
@@ -459,13 +442,13 @@
 }
 
 .annunciator--green {
-  color: #6fffb0;
-  background: rgba(111, 255, 176, 0.12);
+  color: var(--ok);
+  background: var(--ok-bg);
 }
 
 .annunciator--yellow {
-  color: #ffd166;
-  background: rgba(255, 209, 102, 0.12);
+  color: var(--warn);
+  background: var(--warn-bg);
 }
 
 .annunciator--red {
@@ -487,14 +470,14 @@
 }
 
 .alert--yellow {
-  color: #ffd166;
-  background: rgba(255, 209, 102, 0.12);
+  color: var(--warn);
+  background: var(--warn-bg);
 }
 
 .bar {
   height: 6px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--pk-white) 10%, transparent);
   overflow: hidden;
   margin-bottom: 16px;
 }
@@ -518,9 +501,11 @@
   margin-bottom: 12px;
 }
 
+/* Protokuda gives inputs a solid accent background - fine for text fields, but it boxes in a range slider's track. */
 .slider-row input[type='range'] {
   width: 100%;
-  accent-color: #c084fc;
+  background: transparent;
+  accent-color: var(--pk-secondary-light);
 }
 
 .log {
@@ -548,11 +533,11 @@
 }
 
 .log__line--anomaly {
-  color: #ffd166;
+  color: var(--warn);
 }
 
 .log__line--hostile {
-  color: #ffd166;
+  color: var(--warn);
 }
 
 .kill-phase {
@@ -621,7 +606,7 @@
   height: 64px;
   border-radius: 50%;
   border: 1px solid var(--border);
-  background: rgba(16, 21, 31, 0.75);
+  background: color-mix(in srgb, var(--bg) 75%, transparent);
   color: var(--text-h);
   font-family: var(--sans);
   font-size: 20px;
@@ -635,7 +620,7 @@
 }
 
 .touch-btn:active {
-  background: rgba(16, 21, 31, 0.95);
+  background: color-mix(in srgb, var(--bg) 95%, transparent);
 }
 
 .touch-btn--fire {
@@ -645,119 +630,109 @@
 }
 
 .touch-btn--torpedo {
-  border-color: #c084fc;
-  color: #c084fc;
+  border-color: var(--pk-secondary-light);
+  color: var(--pk-secondary-light);
   font-size: 13px;
 }
 
 
-.end-screen {
+.end-screen,
+.start-screen {
   flex: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  text-align: center;
-  padding: 24px;
+  padding: 40px 24px 24px;
+  overflow-y: auto;
 }
 
-.end-screen h1 {
+.end-screen__frame,
+.start-screen__frame {
+  width: min(100%, 760px);
+}
+
+.end-screen__frame > .pk-title,
+.start-screen__frame > .pk-title {
   margin: 0;
-  font-size: 28px;
+  font-size: 1.75rem;
+  font-weight: 600;
 }
 
-.end-screen--victory h1 {
-  color: var(--accent);
+.end-screen__frame > .pk-content,
+.start-screen__frame > .pk-content {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.end-screen--defeat h1 {
-  color: var(--danger);
+.end-screen p,
+.start-screen p {
+  margin: 0;
+  color: var(--text);
 }
 
 .end-screen p {
-  margin: 0;
-  color: var(--text);
   max-width: 40ch;
 }
 
 .end-screen__stats {
   font-size: 15px;
-  min-width: 240px;
+  max-width: 320px;
 }
 
-.end-screen button {
-  margin-top: 8px;
+.end-screen .pk-button {
+  align-self: flex-start;
   padding: 10px 24px;
-  font-size: 14px;
 }
 
-.start-screen {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  text-align: center;
-  padding: 24px;
-  width: 100%;
-}
-
-.start-screen h1 {
-  margin: 0;
-  font-size: 28px;
-  color: var(--accent);
-}
-
-.start-screen > p {
-  margin: 0;
-  color: var(--text);
-}
-
-.start-screen > p.start-screen__subtitle {
-  margin-top: -12px;
-  opacity: 0.7;
-  font-size: 13px;
+.start-screen p.start-screen__subtitle {
+  color: var(--text-h);
+  font-size: 1.25rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .start-screen__options {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
-  justify-content: center;
   margin-top: 8px;
 }
 
 .start-screen__option {
+  flex: 1 1 200px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: 220px;
-  padding: 16px;
-  text-align: left;
-  font-size: 13px;
-  color: var(--text);
-  background: var(--panel-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 14px;
   cursor: pointer;
+  --pk-button-fg: var(--pk-black);
+  --pk-button-hover-fg: var(--pk-black);
 }
 
-.start-screen__option:hover {
-  border-color: var(--accent);
+/* Only the difficulty name is a label - the description reads as a sentence. */
+.start-screen__option span {
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .start-screen__option strong {
-  font-size: 16px;
+  font-size: 1.25rem;
 }
 
-.start-screen__option--easy strong {
-  color: var(--accent);
+.start-screen__option--easy {
+  --pk-button-bg: var(--pk-accent-light);
+  --pk-button-hover-bg: var(--pk-anakiwa);
 }
 
-.start-screen__option--hard strong {
-  color: var(--danger);
+.start-screen__option--normal {
+  --pk-button-bg: var(--pk-primary);
+  --pk-button-hover-bg: var(--pk-primary-light);
+}
+
+.start-screen__option--hard {
+  --pk-button-bg: var(--pk-chestnut-rose);
+  --pk-button-hover-bg: var(--pk-orange-peel);
 }

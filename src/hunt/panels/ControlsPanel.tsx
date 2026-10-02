@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { Panel } from './Panel'
 
 export interface ControlsPanelProps {
   onLongRangeScan: () => void
@@ -14,9 +13,10 @@ export interface ControlsPanelProps {
 const FORM_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
 
 /**
- * The one place every player-initiated action lives, colored/bordered to
- * match the station each action belongs to (green for Sciences, purple for
- * Engineering) rather than grouped by panel the way they used to be.
+ * The one place every player-initiated action lives - rendered as the
+ * Sciences frame's sidebar buttons (Protokuda's `pk-items`/`pk-button`, see
+ * HuntPhase.tsx) rather than a panel of its own. Each button's `data-code`
+ * shows its keyboard shortcut in the corner.
  */
 export function ControlsPanel({
   onLongRangeScan,
@@ -63,24 +63,35 @@ export function ControlsPanel({
   }, [onLongRangeScan, onSubspaceScan, onToggleWarp, warpEngaged, warpDisabled])
 
   return (
-    <Panel title="Controls" accent="controls" className="controls-panel">
-      <button type="button" className="btn-sci" onClick={onLongRangeScan} title="Long-range scan (L)">
-        LRS
-      </button>
-      <button type="button" className="btn-sci" onClick={onSubspaceScan} title="Subspace scan (S)">
-        Subspace
-      </button>
-      <hr className="controls-divider" />
+    <>
       <button
         type="button"
-        className="btn-eng"
+        className="pk-button btn-sci"
+        data-code="L"
+        onClick={onLongRangeScan}
+        title="Long-range scan (L)"
+      >
+        LRS
+      </button>
+      <button
+        type="button"
+        className="pk-button btn-sci"
+        data-code="S"
+        onClick={onSubspaceScan}
+        title="Subspace scan (S)"
+      >
+        Subspace
+      </button>
+      <button
+        type="button"
+        className="pk-button btn-eng"
+        data-code={warpEngaged ? 'I' : 'W'}
         onClick={onToggleWarp}
         disabled={warpDisabled}
         title={warpTitle ?? (warpEngaged ? 'Impulse (I)' : 'Warp (W)')}
       >
         {warpEngaged ? 'Impulse' : 'Warp'}
       </button>
-      <div className="controls-spacer" />
-    </Panel>
+    </>
   )
 }

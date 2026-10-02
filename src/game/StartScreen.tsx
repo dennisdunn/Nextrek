@@ -27,22 +27,26 @@ const DIFFICULTY_COPY: Record<Difficulty, { label: string; body: string }> = {
 export function StartScreen({ onSelect }: StartScreenProps) {
   return (
     <div className="start-screen">
-      <h1>Nextrek</h1>
-      <p className="start-screen__subtitle">Subspace Wumpus</p>
-      <p>Choose your mission difficulty.</p>
-      <div className="start-screen__options">
-        {(Object.keys(DIFFICULTY_COPY) as Difficulty[]).map((difficulty) => (
-          <button
-            key={difficulty}
-            type="button"
-            className={`start-screen__option start-screen__option--${difficulty}`}
-            onClick={() => onSelect(difficulty)}
-          >
-            <strong>{DIFFICULTY_COPY[difficulty].label}</strong>
-            <span>{DIFFICULTY_COPY[difficulty].body}</span>
-          </button>
-        ))}
-      </div>
+      <section className="start-screen__frame pk-frame pk-std" aria-label="Nextrek">
+        <h1 className="pk-title">Nextrek</h1>
+        <div className="pk-content">
+          <p className="start-screen__subtitle">Subspace Wumpus</p>
+          <p>Choose your mission difficulty.</p>
+          <div className="start-screen__options">
+            {(Object.keys(DIFFICULTY_COPY) as Difficulty[]).map((difficulty) => (
+              <button
+                key={difficulty}
+                type="button"
+                className={`pk-button start-screen__option start-screen__option--${difficulty}`}
+                onClick={() => onSelect(difficulty)}
+              >
+                <strong>{DIFFICULTY_COPY[difficulty].label}</strong>
+                <span>{DIFFICULTY_COPY[difficulty].body}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   )
 }

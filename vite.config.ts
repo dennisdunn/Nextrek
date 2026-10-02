@@ -13,12 +13,18 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      // Workbox's default precache glob is js/css/html only - the bundled
+      // Antonio font (Protokuda's typeface, imported in index.css) would
+      // otherwise be left out and fall back to a system font offline.
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,woff2}'],
+      },
       manifest: {
         name: 'Nextrek',
         short_name: 'Nextrek',
         description: 'Hunt the Wumpus meets Asteroids, loosely based on 1971 BASIC Star Trek',
-        theme_color: '#0a0e17',
-        background_color: '#0a0e17',
+        theme_color: '#000000',
+        background_color: '#000000',
         display: 'standalone',
         icons: [
           { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml' },

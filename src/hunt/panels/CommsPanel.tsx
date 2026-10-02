@@ -15,7 +15,7 @@ function lineClass(line: string): string | undefined {
 
 export function CommsPanel({ log }: CommsPanelProps) {
   return (
-    <Panel title="Communications" accent="comms">
+    <Panel title="Communications" accent="comms" frame="partial" mirror>
       {/*
         Rendered newest-first (with the CSS flex-direction reversed to
         match) so the log stays pinned to its latest line without any

@@ -41,21 +41,28 @@ export function EndScreen({
   const { heading, body } = status === 'victory' ? VICTORY_COPY : DEFEAT_COPY[defeatReason ?? 'timeout']
   return (
     <div className={`end-screen end-screen--${status}`}>
-      <h1>{heading}</h1>
-      <p>{body}</p>
-      <dl className="readout end-screen__stats">
-        <dt>Hostiles destroyed</dt>
-        <dd>
-          {hostilesDestroyed} / {hostileQuota}
-        </dd>
-        <dt>Final stardate</dt>
-        <dd>
-          {stardate.toFixed(1)} / {missionDeadline.toFixed(1)}
-        </dd>
-      </dl>
-      <button type="button" onClick={onNewGame}>
-        New game
-      </button>
+      <section
+        className={`end-screen__frame pk-frame pk-std${status === 'defeat' ? ' pk-alert' : ''}`}
+        aria-label={heading}
+      >
+        <h1 className="pk-title">{heading}</h1>
+        <div className="pk-content">
+          <p>{body}</p>
+          <dl className="readout end-screen__stats">
+            <dt>Hostiles destroyed</dt>
+            <dd>
+              {hostilesDestroyed} / {hostileQuota}
+            </dd>
+            <dt>Final stardate</dt>
+            <dd>
+              {stardate.toFixed(1)} / {missionDeadline.toFixed(1)}
+            </dd>
+          </dl>
+          <button type="button" className="pk-button" onClick={onNewGame}>
+            New game
+          </button>
+        </div>
+      </section>
     </div>
   )
 }

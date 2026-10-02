@@ -34,21 +34,22 @@ export interface HuntPhaseProps {
 }
 
 /**
- * Presentational hunt-phase screen: a Controls column, a main station
- * (Sciences or Tactical), and a sidebar (Status or Damage control, plus
- * Engineering and Comms) - all driven entirely by `controller`. Deciding
+ * Presentational hunt-phase screen: a main station (Sciences or Tactical,
+ * with the action buttons in its frame's sidebar) and a sidebar (Status or
+ * Damage control, plus Engineering and Comms) - all driven entirely by
+ * `controller`. Deciding
  * what a move *means* (e.g. triggering or fleeing combat) is the
  * phase-transition layer's job (see game/GameShell.tsx), not this
  * component's.
  *
- * Sciences and Tactical share one station slot, its header doubling as the
- * tab bar once an encounter starts. Both are simple conditionals rather
+ * Sciences and Tactical share one station slot, its nameplate doubling as
+ * the tab bar once an encounter starts. Both are simple conditionals rather
  * than a mount/unmount swap: Tactical has to keep running (or stay paused
  * mid-fight, not reset) while the player is looking at Sciences to pick a
  * sector to flee to, so it stays mounted and is only hidden via CSS.
  *
  * Status and Damage control share the other sidebar slot the same way,
- * toggled by their own header - but neither carries state worth preserving
+ * toggled by their own nameplate - but neither carries state worth preserving
  * across the switch, so that one is a plain conditional render.
  */
 export function HuntPhase({
@@ -79,20 +80,22 @@ export function HuntPhase({
 
   return (
     <div className="hunt-phase">
-      <ControlsPanel
-        onLongRangeScan={longRangeScan}
-        onSubspaceScan={subspaceScan}
-        warpEngaged={state.warpEngaged}
-        warpLocked={Boolean(encounter)}
-        warpOffline={state.subsystems.warpDrive <= 0}
-        onToggleWarp={toggleWarp}
-      />
-
       <div className="main-station">
         <Panel
           title="Sciences"
           accent="sciences"
           className="panel--sciences"
+          alert={alert === 'red'}
+          items={
+            <ControlsPanel
+              onLongRangeScan={longRangeScan}
+              onSubspaceScan={subspaceScan}
+              warpEngaged={state.warpEngaged}
+              warpLocked={Boolean(encounter)}
+              warpOffline={state.subsystems.warpDrive <= 0}
+              onToggleWarp={toggleWarp}
+            />
+          }
           toggle={
             encounter ? (
               <div className="header-toggle header-toggle--sciences">
@@ -149,6 +152,7 @@ export function HuntPhase({
         <Panel
           title={sidebarTab === 'status' ? 'Status' : 'Damage control'}
           accent="status"
+          mirror
           toggle={
             <div className="header-toggle header-toggle--status">
               <button
